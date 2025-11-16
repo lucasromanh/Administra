@@ -19,10 +19,10 @@ export function ReportsDashboard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ingresos vs Egresos</CardTitle>
+        <CardTitle className="text-sm">Ingresos vs Egresos</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />

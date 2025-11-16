@@ -18,10 +18,10 @@ export function ExpensesChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gastos por Categoría</CardTitle>
+        <CardTitle className="text-sm">Gastos por Categoría</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={250}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />

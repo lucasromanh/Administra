@@ -4,11 +4,20 @@ import { TaskForm } from '@/components/tasks/TaskForm';
 import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useMockData';
 import { generateTasksReport } from '@/lib/reports-pdf';
-import { Download } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 import type { Task } from '@/lib/types';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export function TasksPage() {
   const [tasks, setTasks] = useTasks();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDownloadReport = () => {
     generateTasksReport(tasks);
@@ -34,6 +43,7 @@ export function TasksPage() {
       createdAt: new Date().toISOString(),
     };
     setTasks([...tasks, task]);
+    setDialogOpen(false);
   };
 
   return (
@@ -42,22 +52,30 @@ export function TasksPage() {
         title="Tareas Administrativas"
         description="Gestiona y realiza seguimiento de tareas"
         actions={
-          <Button onClick={handleDownloadReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Descargar Informe de Tareas
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleDownloadReport} variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Descargar Informe
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Nueva Tarea
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-full max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Crear Nueva Tarea</DialogTitle>
+                </DialogHeader>
+                <TaskForm onSubmit={handleCreateTask} />
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
-      <div className="flex-1 p-8">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <h3 className="text-lg font-medium mb-4">Mis Tareas</h3>
-            <TaskList tasks={tasks} onToggleComplete={handleToggleComplete} />
-          </div>
-          <div>
-            <TaskForm onSubmit={handleCreateTask} />
-          </div>
-        </div>
+      <div className="px-6 py-4 w-full">
+        <TaskList tasks={tasks} onToggleComplete={handleToggleComplete} />
       </div>
     </div>
   );

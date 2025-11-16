@@ -32,20 +32,18 @@ export function DashboardPage() {
       <Header
         title="Dashboard"
         description="Panel de control - Hotel Plaza Santiago"
-      />
-      <div className="flex-1 space-y-6 p-8">
-        {/* Botón de descarga */}
-        <div className="flex justify-end">
-          <Button onClick={handleDownloadReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Descargar Informe General
+        actions={
+          <Button onClick={handleDownloadReport} size="sm" className="gap-2">
+            <Download className="h-3 w-3" />
+            Descargar Informe
           </Button>
-        </div>
-
+        }
+      />
+      <div className="px-6 py-4 space-y-6 w-full">
         {/* Métricas Hoteleras */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Métricas Hoteleras</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <h3 className="text-sm font-medium mb-3">Métricas Hoteleras</h3>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {kpis.map((kpi) => (
               <KPICard key={kpi.id} kpi={kpi} />
             ))}
@@ -54,18 +52,18 @@ export function DashboardPage() {
 
         {/* Indicadores Operacionales */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Indicadores Operacionales</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <h3 className="text-sm font-medium mb-3">Indicadores Operacionales</h3>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs font-medium">
                   Habitaciones Disponibles
                 </CardTitle>
-                <Hotel className="h-4 w-4 text-muted-foreground" />
+                <Hotel className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.roomsAvailable}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl font-bold">{metrics.roomsAvailable}</div>
+                <p className="text-[10px] text-muted-foreground">
                   Total de habitaciones
                 </p>
               </CardContent>
@@ -73,14 +71,14 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs font-medium">
                   Noches Vendidas
                 </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <Users className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.roomsSold}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl font-bold">{metrics.roomsSold}</div>
+                <p className="text-[10px] text-muted-foreground">
                   Este mes
                 </p>
               </CardContent>
@@ -88,16 +86,16 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs font-medium">
                   Ingresos Totales
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <TrendingUp className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-bold">
                   {formatCurrency(metrics.totalRevenue)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   Mes actual
                 </p>
               </CardContent>
@@ -105,16 +103,16 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs font-medium">
                   Gastos Totales
                 </CardTitle>
-                <Receipt className="h-4 w-4 text-muted-foreground" />
+                <Receipt className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-bold">
                   {formatCurrency(metrics.totalExpenses)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   Mes actual
                 </p>
               </CardContent>
@@ -123,17 +121,17 @@ export function DashboardPage() {
         </div>
 
         {/* Resumen de Tareas Pendientes */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs font-medium">
                 Facturas Pendientes
               </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{pendingInvoices.length}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xl font-bold">{pendingInvoices.length}</div>
+              <p className="text-[10px] text-muted-foreground">
                 Requieren seguimiento
               </p>
             </CardContent>
@@ -141,13 +139,13 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs font-medium">
                 Gastos Por Aprobar
               </CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
+              <Receipt className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{pendingExpenses.length}</div>
+              <div className="text-xl font-bold">{pendingExpenses.length}</div>
               <p className="text-xs text-muted-foreground">
                 Esperando revisión
               </p>

@@ -33,17 +33,19 @@ export function BankingPage() {
       <Header
         title="Conciliación Bancaria"
         description="Administra tus cuentas bancarias y concilia movimientos"
-        actions={<UploadBankFileModal />}
+        actions={
+          <div className="flex gap-2">
+            <Button onClick={handleDownloadReport} variant="outline" size="sm" className="gap-2">
+              <Download className="h-3 w-3" />
+              Descargar Informe
+            </Button>
+            <UploadBankFileModal />
+          </div>
+        }
       />
-      <div className="flex-1 space-y-6 p-8">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Cuentas Bancarias</h3>
-          <Button onClick={handleDownloadReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Descargar Informe Bancario
-          </Button>
-        </div>
+      <div className="px-6 py-4 space-y-6 w-full">
         <div>
+          <h3 className="text-sm font-medium mb-3">Cuentas Bancarias</h3>
           <BankAccountList
             accounts={accounts}
             onSelectAccount={setSelectedAccount}
@@ -53,7 +55,7 @@ export function BankingPage() {
         {selectedAccount && (
           <>
             <div>
-              <h3 className="text-lg font-medium mb-4">
+              <h3 className="text-sm font-medium mb-3">
                 Resultado de Conciliación - {selectedAccount.name}
               </h3>
               {reconciliationResult && (
@@ -62,7 +64,7 @@ export function BankingPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-4">Movimientos</h3>
+              <h3 className="text-sm font-medium mb-3">Movimientos</h3>
               <BankMovementsTable movements={filteredMovements} />
             </div>
           </>

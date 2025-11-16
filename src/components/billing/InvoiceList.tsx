@@ -25,7 +25,11 @@ export function InvoiceList({ invoices, onViewInvoice }: InvoiceListProps) {
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('es-CL');
+    return new Date(date).toLocaleDateString('es-CL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   const getStatusVariant = (status: Invoice['status']) => {
@@ -52,50 +56,53 @@ export function InvoiceList({ invoices, onViewInvoice }: InvoiceListProps) {
   };
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Número</TableHead>
-          <TableHead>Cliente</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead>Vencimiento</TableHead>
-          <TableHead className="text-right">Monto</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead className="text-right">Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {invoices.map((invoice) => (
-          <TableRow key={invoice.id}>
-            <TableCell className="font-medium">{invoice.number}</TableCell>
-            <TableCell>{invoice.customerName}</TableCell>
-            <TableCell>{formatDate(invoice.date)}</TableCell>
-            <TableCell>{formatDate(invoice.dueDate)}</TableCell>
-            <TableCell className="text-right font-medium">
-              {formatCurrency(invoice.amount)}
-            </TableCell>
-            <TableCell>
-              <Badge variant={getStatusVariant(invoice.status)}>
-                {getStatusLabel(invoice.status)}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onViewInvoice?.(invoice)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="ghost">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="text-xs">Número</TableHead>
+            <TableHead className="text-xs">Cliente</TableHead>
+            <TableHead className="text-xs">Fecha</TableHead>
+            <TableHead className="text-xs">Vencimiento</TableHead>
+            <TableHead className="text-xs text-right">Monto</TableHead>
+            <TableHead className="text-xs">Estado</TableHead>
+            <TableHead className="text-xs text-right">Acciones</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice) => (
+            <TableRow key={invoice.id} className="hover:bg-muted/50">
+              <TableCell className="font-semibold text-sm">{invoice.number}</TableCell>
+              <TableCell className="text-sm">{invoice.customerName}</TableCell>
+              <TableCell className="text-xs">{formatDate(invoice.date)}</TableCell>
+              <TableCell className="text-xs">{formatDate(invoice.dueDate)}</TableCell>
+              <TableCell className="text-right font-semibold text-sm">
+                {formatCurrency(invoice.amount)}
+              </TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(invoice.status)} className="text-xs">
+                  {getStatusLabel(invoice.status)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onViewInvoice?.(invoice)}
+                    className="h-7 w-7 p-0"
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

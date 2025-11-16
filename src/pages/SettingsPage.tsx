@@ -8,7 +8,7 @@ export function SettingsPage() {
         title="Configuración"
         description="Personaliza tu hotel y sistema"
       />
-      <div className="flex-1 p-8">
+      <div className="px-6 py-4 w-full">
         <HotelSettings />
       </div>
     </div>

@@ -11,7 +11,11 @@ interface TaskListProps {
 
 export function TaskList({ tasks, onToggleComplete }: TaskListProps) {
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('es-CL');
+    return new Date(date).toLocaleDateString('es-CL', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
   };
 
   const getPriorityVariant = (priority: Task['priority']) => {
@@ -35,20 +39,20 @@ export function TaskList({ tasks, onToggleComplete }: TaskListProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 pb-4">
       {tasks.map((task) => (
-        <Card key={task.id}>
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
+        <Card key={task.id} className="hover:bg-accent/50 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
               <Checkbox
                 checked={task.status === 'completada'}
                 onCheckedChange={() => onToggleComplete?.(task.id)}
                 className="mt-1"
               />
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
                   <h3
-                    className={`font-medium ${
+                    className={`font-medium text-sm ${
                       task.status === 'completada'
                         ? 'line-through text-muted-foreground'
                         : ''
@@ -56,24 +60,27 @@ export function TaskList({ tasks, onToggleComplete }: TaskListProps) {
                   >
                     {task.title}
                   </h3>
-                  <Badge variant={getPriorityVariant(task.priority)}>
+                  <Badge variant={getPriorityVariant(task.priority)} className="shrink-0 text-xs">
                     {getPriorityLabel(task.priority)}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-2">
                   {task.description}
                 </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-3 w-3" />
                     <span>{formatDate(task.dueDate)}</span>
                   </div>
                   {task.assignedTo && (
                     <div className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
+                      <User className="h-3 w-3" />
                       <span>{task.assignedTo}</span>
                     </div>
                   )}
+                  <Badge variant="outline" className="text-xs">
+                    {task.category}
+                  </Badge>
                 </div>
               </div>
             </div>
