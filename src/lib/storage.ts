@@ -64,4 +64,9 @@ export const STORAGE_KEYS = {
   HOTEL_METRICS: 'hotel_metrics',
   HOTEL_LOGO: 'hotel_logo',
   HOTEL_NAME: 'hotel_name',
+  ADMIN_NAME: 'admin_name',
+  ADMIN_EMAIL: 'admin_email',
+  ADMIN_PHONE: 'admin_phone',
+  HOTEL_ADDRESS: 'hotel_address',
+  HOTEL_RUT: 'hotel_rut',
 } as const;

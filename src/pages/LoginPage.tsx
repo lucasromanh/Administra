@@ -81,10 +81,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </Button>
 
             <div className="mt-6 p-4 bg-muted rounded-lg text-sm">
-              <p className="font-medium mb-2">Credenciales de prueba:</p>
+              <p className="font-medium mb-2">Credenciales de Acceso:</p>
               <div className="space-y-1 text-muted-foreground">
-                <p>👤 <strong>admin</strong> / admin123</p>
-                <p>👤 <strong>contador</strong> / contador123</p>
+                <p>👤 Usuario: <strong>demo</strong></p>
+                <p>🔑 Contraseña: <strong>demo123</strong></p>
               </div>
             </div>
           </form>

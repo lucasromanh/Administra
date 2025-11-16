@@ -1,3 +1,5 @@
+import { ModeToggle } from '@/components/mode-toggle';
+
 interface HeaderProps {
   title: string;
   description?: string;
@@ -14,7 +16,10 @@ export function Header({ title, description, actions }: HeaderProps) {
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
+        <div className="flex items-center gap-2">
+          {actions}
+          <ModeToggle />
+        </div>
       </div>
     </div>
   );

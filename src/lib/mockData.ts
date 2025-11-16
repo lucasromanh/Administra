@@ -14,24 +14,17 @@ import type {
 export const mockUsers: User[] = [
   {
     id: '1',
-    username: 'admin',
-    name: 'Carlos Administrador',
+    username: 'demo',
+    name: 'Administrador',
     role: 'admin',
-    hotelName: 'Hotel Plaza Santiago',
-  },
-  {
-    id: '2',
-    username: 'contador',
-    name: 'María Contadora',
-    role: 'contador',
-    hotelName: 'Hotel Plaza Santiago',
+    email: '',
+    phone: '',
   },
 ];
 
-// Contraseñas: admin / admin123  |  contador / contador123
+// Contraseña: demo / demo123
 export const mockPasswords: Record<string, string> = {
-  admin: 'admin123',
-  contador: 'contador123',
+  demo: 'demo123',
 };
 
 // === CUENTAS BANCARIAS ===

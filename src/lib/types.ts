@@ -7,8 +7,9 @@ export interface User {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'contador';
-  hotelName: string;
+  role: 'admin';
+  email?: string;
+  phone?: string;
 }
 
 export interface AuthState {
