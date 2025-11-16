@@ -7,11 +7,21 @@ interface KPICardProps {
 }
 
 export function KPICard({ kpi }: KPICardProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-    }).format(amount);
+  const formatValue = (value: number, format?: string) => {
+    switch (format) {
+      case 'currency':
+        return new Intl.NumberFormat('es-CL', {
+          style: 'currency',
+          currency: 'CLP',
+          maximumFractionDigits: 0,
+        }).format(value);
+      case 'percentage':
+        return `${value.toFixed(1)}%`;
+      case 'number':
+        return value.toLocaleString('es-CL');
+      default:
+        return value.toLocaleString('es-CL');
+    }
   };
 
   const isPositive = kpi.change > 0;
@@ -27,13 +37,13 @@ export function KPICard({ kpi }: KPICardProps) {
         )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatCurrency(kpi.value)}</div>
+        <div className="text-2xl font-bold">{formatValue(kpi.value, kpi.format)}</div>
         <p className="text-xs text-muted-foreground">
           <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
             {isPositive ? '+' : ''}
-            {kpi.change}%
+            {kpi.change.toFixed(1)}%
           </span>{' '}
-          desde el mes anterior
+          vs mes anterior
         </p>
       </CardContent>
     </Card>

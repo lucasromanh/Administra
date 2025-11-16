@@ -1,4 +1,6 @@
 import { NavigationItem } from './NavigationItem';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard,
   Landmark,
@@ -6,9 +8,13 @@ import {
   Receipt,
   BarChart3,
   CheckSquare,
+  LogOut,
+  Hotel,
 } from 'lucide-react';
 
 export function Sidebar() {
+  const { user, logout } = useAuth();
+
   const navigation = [
     {
       name: 'Dashboard',
@@ -44,9 +50,23 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col gap-y-5 border-r bg-background px-6 py-4">
-      <div className="flex h-16 shrink-0 items-center">
-        <h1 className="text-2xl font-bold text-primary">ADMINISTRA</h1>
+      <div className="flex h-16 shrink-0 items-center gap-3">
+        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <Hotel className="h-6 w-6 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-primary">ADMINISTRA</h1>
+          <p className="text-xs text-muted-foreground">{user?.hotelName}</p>
+        </div>
       </div>
+
+      {user && (
+        <div className="border-b pb-4">
+          <p className="text-sm font-medium">{user.name}</p>
+          <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+        </div>
+      )}
+
       <nav className="flex flex-1 flex-col">
         <ul role="list" className="flex flex-1 flex-col gap-y-2">
           {navigation.map((item) => (
@@ -60,6 +80,17 @@ export function Sidebar() {
           ))}
         </ul>
       </nav>
+
+      <div className="border-t pt-4">
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={logout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar Sesión
+        </Button>
+      </div>
     </div>
   );
 }

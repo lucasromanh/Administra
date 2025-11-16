@@ -8,6 +8,7 @@ import {
   mockExpenses,
   mockTasks,
   mockKPIs,
+  mockHotelMetrics,
 } from '@/lib/mockData';
 import type {
   BankAccount,
@@ -17,6 +18,7 @@ import type {
   Expense,
   Task,
   KPI,
+  HotelMetrics,
 } from '@/lib/types';
 
 // ============================================
@@ -55,4 +57,11 @@ export const useTasks = () => {
 
 export const useKPIs = () => {
   return useLocalStorage<KPI[]>(STORAGE_KEYS.KPIS, mockKPIs);
+};
+
+export const useHotelMetrics = () => {
+  return useLocalStorage<HotelMetrics>(
+    STORAGE_KEYS.HOTEL_METRICS,
+    mockHotelMetrics
+  );
 };

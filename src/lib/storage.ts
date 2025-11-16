@@ -52,6 +52,8 @@ export const storage = {
 
 // Claves específicas del sistema
 export const STORAGE_KEYS = {
+  AUTH_USER: 'auth_user',
+  AUTH_TOKEN: 'auth_token',
   BANK_ACCOUNTS: 'bank_accounts',
   BANK_MOVEMENTS: 'bank_movements',
   CUSTOMERS: 'customers',
@@ -59,4 +61,5 @@ export const STORAGE_KEYS = {
   EXPENSES: 'expenses',
   TASKS: 'tasks',
   KPIS: 'kpis',
+  HOTEL_METRICS: 'hotel_metrics',
 } as const;

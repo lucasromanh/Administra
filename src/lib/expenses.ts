@@ -1,7 +1,7 @@
 import type { Expense, ExpenseCategory } from './types';
 
 // ============================================
-// LÓGICA DE GASTOS
+// LÓGICA DE GASTOS HOTELEROS
 // ============================================
 
 export const getExpensesByCategory = (
@@ -42,12 +42,34 @@ export const rejectExpense = (
 
 export const getCategoryColor = (category: ExpenseCategory): string => {
   const colors: Record<ExpenseCategory, string> = {
-    oficina: 'bg-blue-100 text-blue-800',
-    servicios: 'bg-green-100 text-green-800',
-    marketing: 'bg-purple-100 text-purple-800',
-    personal: 'bg-yellow-100 text-yellow-800',
+    mantenimiento: 'bg-orange-100 text-orange-800',
+    housekeeping: 'bg-blue-100 text-blue-800',
+    'f&b': 'bg-green-100 text-green-800',
+    lavanderia: 'bg-cyan-100 text-cyan-800',
+    rrhh: 'bg-purple-100 text-purple-800',
+    'servicios-basicos': 'bg-yellow-100 text-yellow-800',
+    marketing: 'bg-pink-100 text-pink-800',
     tecnologia: 'bg-indigo-100 text-indigo-800',
-    otros: 'bg-gray-100 text-gray-800',
+    administracion: 'bg-gray-100 text-gray-800',
+    proveedores: 'bg-red-100 text-red-800',
+    otros: 'bg-slate-100 text-slate-800',
   };
   return colors[category];
+};
+
+export const getCategoryLabel = (category: ExpenseCategory): string => {
+  const labels: Record<ExpenseCategory, string> = {
+    mantenimiento: 'Mantenimiento',
+    housekeeping: 'Housekeeping',
+    'f&b': 'F&B',
+    lavanderia: 'Lavandería',
+    rrhh: 'RRHH',
+    'servicios-basicos': 'Servicios Básicos',
+    marketing: 'Marketing',
+    tecnologia: 'Tecnología',
+    administracion: 'Administración',
+    proveedores: 'Proveedores',
+    otros: 'Otros',
+  };
+  return labels[category];
 };

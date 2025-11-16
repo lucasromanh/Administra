@@ -1,6 +1,20 @@
 // ============================================
-// TIPOS GLOBALES DEL SISTEMA ADMINISTRA
+// TIPOS GLOBALES DEL SISTEMA ADMINISTRA - HOTELERÍA
 // ============================================
+
+// === AUTH ===
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  role: 'admin' | 'contador';
+  hotelName: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+}
 
 // === BANKING ===
 export interface BankAccount {
@@ -10,6 +24,7 @@ export interface BankAccount {
   accountNumber: string;
   balance: number;
   currency: string;
+  type: 'corriente' | 'vista' | 'ahorro';
 }
 
 export interface BankMovement {
@@ -19,13 +34,18 @@ export interface BankMovement {
   description: string;
   amount: number;
   type: 'ingreso' | 'egreso';
+  category: 'deposito' | 'pos' | 'transferencia' | 'fee' | 'comision' | 'otro';
   reconciled: boolean;
+  reference?: string;
 }
 
 export interface ReconciliationResult {
   matched: number;
   unmatched: number;
   differences: ReconciliationDifference[];
+  totalIngresos: number;
+  totalEgresos: number;
+  balance: number;
 }
 
 export interface ReconciliationDifference {
@@ -44,6 +64,8 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
+  type: 'agencia' | 'ota' | 'empresa' | 'evento' | 'convenio';
+  contactPerson?: string;
 }
 
 export interface Invoice {
@@ -56,6 +78,8 @@ export interface Invoice {
   amount: number;
   status: 'pendiente' | 'pagada' | 'vencida' | 'anulada';
   items: InvoiceItem[];
+  paymentMethod?: string;
+  notes?: string;
 }
 
 export interface InvoiceItem {
@@ -64,6 +88,7 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  roomNights?: number;
 }
 
 // === EXPENSES ===
@@ -76,14 +101,21 @@ export interface Expense {
   status: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado';
   receipt?: string;
   createdBy: string;
+  supplier?: string;
+  invoiceNumber?: string;
 }
 
 export type ExpenseCategory = 
-  | 'oficina' 
-  | 'servicios' 
-  | 'marketing' 
-  | 'personal' 
-  | 'tecnologia' 
+  | 'mantenimiento'
+  | 'housekeeping' 
+  | 'f&b'
+  | 'lavanderia'
+  | 'rrhh'
+  | 'servicios-basicos'
+  | 'marketing'
+  | 'tecnologia'
+  | 'administracion'
+  | 'proveedores'
   | 'otros';
 
 // === REPORTS ===
@@ -93,18 +125,25 @@ export interface KPI {
   value: number;
   change: number;
   period: string;
+  format?: 'currency' | 'percentage' | 'number';
 }
 
-export interface ChartData {
-  labels: string[];
-  datasets: ChartDataset[];
+export interface HotelMetrics {
+  adr: number; // Average Daily Rate
+  revpar: number; // Revenue Per Available Room
+  occupancy: number; // Porcentaje de ocupación
+  gop: number; // Gross Operating Profit
+  roomsAvailable: number;
+  roomsSold: number;
+  totalRevenue: number;
+  totalExpenses: number;
 }
 
-export interface ChartDataset {
-  label: string;
-  data: number[];
-  backgroundColor?: string;
-  borderColor?: string;
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  ingresos?: number;
+  egresos?: number;
 }
 
 // === TASKS ===
@@ -117,6 +156,7 @@ export interface Task {
   status: 'pendiente' | 'en-progreso' | 'completada';
   assignedTo?: string;
   createdAt: string;
+  category: 'auditoria' | 'conciliacion' | 'reporte' | 'pago' | 'vencimiento' | 'otro';
 }
 
 // === NAVIGATION ===

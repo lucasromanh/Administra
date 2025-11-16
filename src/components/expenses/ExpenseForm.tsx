@@ -85,11 +85,16 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
                 })
               }
             >
-              <option value="oficina">Oficina</option>
-              <option value="servicios">Servicios</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="housekeeping">Housekeeping</option>
+              <option value="f&b">F&B</option>
+              <option value="lavanderia">Lavandería</option>
+              <option value="rrhh">RRHH</option>
+              <option value="servicios-basicos">Servicios Básicos</option>
               <option value="marketing">Marketing</option>
-              <option value="personal">Personal</option>
               <option value="tecnologia">Tecnología</option>
+              <option value="administracion">Administración</option>
+              <option value="proveedores">Proveedores</option>
               <option value="otros">Otros</option>
             </select>
           </div>

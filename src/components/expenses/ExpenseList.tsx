@@ -9,7 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Expense } from '@/lib/types';
-import { ExpenseCategoryBadge } from './ExpenseCategoryBadge';
+import { ExpenseCategoryBadge } from './ExpenseCategoryBadge.tsx';
 import { Check, X } from 'lucide-react';
 
 interface ExpenseListProps {

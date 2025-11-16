@@ -1,16 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useExpenses } from '@/hooks/useMockData';
+import { calculateExpensesByCategory } from '@/lib/reports';
 
-// Placeholder - se puede implementar con Chart.js o Recharts más adelante
 export function ExpensesChart() {
+  const [expenses] = useExpenses();
+  const data = calculateExpensesByCategory(expenses);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Gastos por Categoría</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-          Gráfico de gastos por categoría
-        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+            <YAxis tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} />
+            <Tooltip 
+              formatter={(value: number) => formatCurrency(value)}
+              labelFormatter={(label) => `Categoría: ${label}`}
+            />
+            <Bar dataKey="value" fill="#ef4444" name="Gastos" />
+          </BarChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

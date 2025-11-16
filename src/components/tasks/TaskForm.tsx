@@ -14,6 +14,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     description: '',
     dueDate: new Date().toISOString().split('T')[0],
     priority: 'media' as Task['priority'],
+    category: 'otro' as Task['category'],
     assignedTo: '',
   });
 
@@ -28,6 +29,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
       description: '',
       dueDate: new Date().toISOString().split('T')[0],
       priority: 'media',
+      category: 'otro',
       assignedTo: '',
     });
   };
@@ -85,6 +87,26 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
               <option value="baja">Baja</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
+            </select>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Categoría</label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={formData.category}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  category: e.target.value as Task['category'],
+                })
+              }
+            >
+              <option value="auditoria">Auditoría</option>
+              <option value="conciliacion">Conciliación</option>
+              <option value="reporte">Reporte</option>
+              <option value="pago">Pago</option>
+              <option value="vencimiento">Vencimiento</option>
+              <option value="otro">Otro</option>
             </select>
           </div>
           <div className="grid gap-2">
