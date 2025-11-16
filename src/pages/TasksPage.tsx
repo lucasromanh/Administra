@@ -1,11 +1,18 @@
 import { Header } from '@/components/layout/Header';
 import { TaskList } from '@/components/tasks/TaskList';
 import { TaskForm } from '@/components/tasks/TaskForm';
+import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useMockData';
+import { generateTasksReport } from '@/lib/reports-pdf';
+import { Download } from 'lucide-react';
 import type { Task } from '@/lib/types';
 
 export function TasksPage() {
   const [tasks, setTasks] = useTasks();
+
+  const handleDownloadReport = () => {
+    generateTasksReport(tasks);
+  };
 
   const handleToggleComplete = (taskId: string) => {
     setTasks(
@@ -33,7 +40,13 @@ export function TasksPage() {
     <div className="flex flex-col">
       <Header
         title="Tareas Administrativas"
-        description="Organiza y da seguimiento a tareas pendientes"
+        description="Gestiona y realiza seguimiento de tareas"
+        actions={
+          <Button onClick={handleDownloadReport} className="gap-2">
+            <Download className="h-4 w-4" />
+            Descargar Informe de Tareas
+          </Button>
+        }
       />
       <div className="flex-1 p-8">
         <div className="grid gap-6 lg:grid-cols-3">

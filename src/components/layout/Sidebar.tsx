@@ -1,6 +1,8 @@
 import { NavigationItem } from './NavigationItem';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { getHotelConfig } from '@/lib/hotelConfig';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Landmark,
@@ -10,10 +12,22 @@ import {
   CheckSquare,
   LogOut,
   Hotel,
+  Settings,
 } from 'lucide-react';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
+  const [hotelConfig, setHotelConfig] = useState(getHotelConfig());
+
+  // Actualizar config cuando cambie
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setHotelConfig(getHotelConfig());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const navigation = [
     {
@@ -46,17 +60,30 @@ export function Sidebar() {
       href: '/tasks',
       icon: <CheckSquare className="h-5 w-5" />,
     },
+    {
+      name: 'Configuración',
+      href: '/settings',
+      icon: <Settings className="h-5 w-5" />,
+    },
   ];
 
   return (
     <div className="flex h-full w-64 flex-col gap-y-5 border-r bg-background px-6 py-4">
       <div className="flex h-16 shrink-0 items-center gap-3">
-        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-          <Hotel className="h-6 w-6 text-primary-foreground" />
-        </div>
+        {hotelConfig.logo ? (
+          <img
+            src={hotelConfig.logo}
+            alt="Logo del hotel"
+            className="w-10 h-10 object-contain bg-white rounded-lg p-1"
+          />
+        ) : (
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <Hotel className="h-6 w-6 text-primary-foreground" />
+          </div>
+        )}
         <div>
-          <h1 className="text-xl font-bold text-primary">ADMINISTRA</h1>
-          <p className="text-xs text-muted-foreground">{user?.hotelName}</p>
+          <h1 className="text-xl font-bold text-primary">{hotelConfig.name}</h1>
+          <p className="text-xs text-muted-foreground">Administración</p>
         </div>
       </div>
 

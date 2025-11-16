@@ -3,24 +3,35 @@ import { Header } from '@/components/layout/Header';
 import { InvoiceList } from '@/components/billing/InvoiceList';
 import { CustomerList } from '@/components/billing/CustomerList';
 import { useInvoices, useCustomers } from '@/hooks/useMockData';
+import { generateBillingReport } from '@/lib/reports-pdf';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
 
 export function BillingPage() {
   const [invoices] = useInvoices();
   const [customers] = useCustomers();
   const [activeTab, setActiveTab] = useState<'invoices' | 'customers'>('invoices');
 
+  const handleDownloadReport = () => {
+    generateBillingReport(invoices);
+  };
+
   return (
     <div className="flex flex-col">
       <Header
-        title="Facturación y Cobranza"
+        title="Facturacion y Cobranza"
         description="Gestiona facturas y clientes"
         actions={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Factura
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleDownloadReport} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Descargar Informe
+            </Button>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Factura
+            </Button>
+          </div>
         }
       />
       <div className="flex-1 p-8">

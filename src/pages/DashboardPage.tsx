@@ -2,7 +2,9 @@ import { Header } from '@/components/layout/Header';
 import { KPICard } from '@/components/reports/KPICard';
 import { useKPIs, useInvoices, useExpenses, useHotelMetrics } from '@/hooks/useMockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, FileText, Receipt, TrendingUp, Hotel, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart3, FileText, Receipt, TrendingUp, Hotel, Users, Download } from 'lucide-react';
+import { generateDashboardReport } from '@/lib/reports-pdf';
 
 export function DashboardPage() {
   const [kpis] = useKPIs();
@@ -12,6 +14,10 @@ export function DashboardPage() {
 
   const pendingInvoices = invoices.filter((inv) => inv.status === 'pendiente' || inv.status === 'vencida');
   const pendingExpenses = expenses.filter((exp) => exp.status === 'pendiente');
+
+  const handleDownloadReport = () => {
+    generateDashboardReport(kpis, metrics, invoices, expenses);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -28,6 +34,14 @@ export function DashboardPage() {
         description="Panel de control - Hotel Plaza Santiago"
       />
       <div className="flex-1 space-y-6 p-8">
+        {/* Botón de descarga */}
+        <div className="flex justify-end">
+          <Button onClick={handleDownloadReport} className="gap-2">
+            <Download className="h-4 w-4" />
+            Descargar Informe General
+          </Button>
+        </div>
+
         {/* Métricas Hoteleras */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Métricas Hoteleras</h3>

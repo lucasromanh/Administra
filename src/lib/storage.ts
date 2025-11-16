@@ -62,4 +62,6 @@ export const STORAGE_KEYS = {
   TASKS: 'tasks',
   KPIS: 'kpis',
   HOTEL_METRICS: 'hotel_metrics',
+  HOTEL_LOGO: 'hotel_logo',
+  HOTEL_NAME: 'hotel_name',
 } as const;

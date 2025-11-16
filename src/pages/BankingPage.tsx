@@ -3,9 +3,12 @@ import { BankAccountList } from '@/components/banking/BankAccountList';
 import { BankMovementsTable } from '@/components/banking/BankMovementsTable';
 import { ReconciliationResultComponent } from '@/components/banking/ReconciliationResult';
 import { UploadBankFileModal } from '@/components/banking/UploadBankFileModal';
+import { Button } from '@/components/ui/button';
 import { useBankAccounts, useBankMovements } from '@/hooks/useMockData';
 import { reconcileMovements } from '@/lib/bank';
+import { generateBankingReport } from '@/lib/reports-pdf';
 import { useState } from 'react';
+import { Download } from 'lucide-react';
 import type { BankAccount } from '@/lib/types';
 
 export function BankingPage() {
@@ -21,6 +24,10 @@ export function BankingPage() {
     ? reconcileMovements(filteredMovements, selectedAccount.balance)
     : null;
 
+  const handleDownloadReport = () => {
+    generateBankingReport(accounts, movements, selectedAccount?.id);
+  };
+
   return (
     <div className="flex flex-col">
       <Header
@@ -29,8 +36,14 @@ export function BankingPage() {
         actions={<UploadBankFileModal />}
       />
       <div className="flex-1 space-y-6 p-8">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Cuentas Bancarias</h3>
+          <Button onClick={handleDownloadReport} className="gap-2">
+            <Download className="h-4 w-4" />
+            Descargar Informe Bancario
+          </Button>
+        </div>
         <div>
-          <h3 className="text-lg font-medium mb-4">Cuentas Bancarias</h3>
           <BankAccountList
             accounts={accounts}
             onSelectAccount={setSelectedAccount}

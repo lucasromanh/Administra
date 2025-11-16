@@ -8,6 +8,7 @@ import { BillingPage } from '@/pages/BillingPage';
 import { ExpensesPage } from '@/pages/ExpensesPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { TasksPage } from '@/pages/TasksPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -57,6 +58,10 @@ const router = createBrowserRouter([
   {
     path: '/tasks',
     element: <ProtectedRoute><TasksPage /></ProtectedRoute>,
+  },
+  {
+    path: '/settings',
+    element: <ProtectedRoute><SettingsPage /></ProtectedRoute>,
   },
 ]);
 
