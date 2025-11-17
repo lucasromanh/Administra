@@ -20,9 +20,13 @@ export function ReportsDashboard() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">Ingresos vs Egresos</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Comparación mensual de ingresos y gastos. Las barras verdes muestran los ingresos totales, 
+          las rojas los egresos, y la línea azul representa la utilidad (diferencia entre ingresos y gastos).
+        </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={200}>
           <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />

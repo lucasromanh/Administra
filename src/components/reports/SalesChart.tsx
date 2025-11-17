@@ -19,9 +19,13 @@ export function SalesChart() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">Ingresos por Facturación</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Evolución de los ingresos mensuales generados por facturación. 
+          La tendencia ascendente indica crecimiento en las ventas del hotel.
+        </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />

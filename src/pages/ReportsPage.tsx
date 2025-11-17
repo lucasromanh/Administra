@@ -30,7 +30,11 @@ export function ReportsPage() {
       />
       <div className="px-6 py-4 space-y-6 w-full">
         <div>
-          <h3 className="text-sm font-medium mb-3">Indicadores Clave</h3>
+          <h3 className="text-sm font-medium mb-1">Indicadores Clave de Rendimiento (KPIs)</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Métricas principales que miden el desempeño operativo y financiero del hotel. 
+            El porcentaje indica la variación respecto al mes anterior.
+          </p>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {kpis.map((kpi) => (
               <KPICard key={kpi.id} kpi={kpi} />
@@ -39,13 +43,22 @@ export function ReportsPage() {
         </div>
 
         <div>
-          <h3 className="text-sm font-medium mb-3">Gráficos</h3>
+          <h3 className="text-sm font-medium mb-1">Análisis Financiero</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Visualización comparativa de ingresos, egresos y utilidad neta mensual.
+          </p>
           <ReportsDashboard />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <SalesChart />
-          <ExpensesChart />
+        <div>
+          <h3 className="text-sm font-medium mb-1">Desglose Detallado</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Análisis específico de ingresos por facturación y distribución de gastos operativos.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SalesChart />
+            <ExpensesChart />
+          </div>
         </div>
       </div>
     </div>

@@ -13,9 +13,10 @@ import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 interface BankMovementsTableProps {
   movements: BankMovement[];
+  onToggleReconcile?: (movementId: string) => void;
 }
 
-export function BankMovementsTable({ movements }: BankMovementsTableProps) {
+export function BankMovementsTable({ movements, onToggleReconcile }: BankMovementsTableProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -80,7 +81,14 @@ export function BankMovementsTable({ movements }: BankMovementsTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={movement.reconciled ? 'default' : 'secondary'} className="text-xs">
+                  <Badge 
+                    variant={movement.reconciled ? 'default' : 'secondary'} 
+                    className={`text-xs cursor-pointer hover:opacity-80 transition-opacity ${
+                      !movement.reconciled ? 'hover:bg-primary hover:text-primary-foreground' : ''
+                    }`}
+                    onClick={() => onToggleReconcile?.(movement.id)}
+                    title={movement.reconciled ? 'Click para marcar como pendiente' : 'Click para conciliar'}
+                  >
                     {movement.reconciled ? 'Conciliado' : 'Pendiente'}
                   </Badge>
                 </TableCell>

@@ -19,9 +19,13 @@ export function ExpensesChart() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">Gastos por Categoría</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Distribución de gastos operativos por categoría. 
+          Permite identificar las áreas con mayor inversión y optimizar presupuestos.
+        </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />

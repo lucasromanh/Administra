@@ -68,7 +68,7 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="sticky top-0 h-screen w-64 flex flex-col border-r bg-background overflow-hidden">
+    <div className="fixed top-0 left-0 h-screen w-64 flex flex-col border-r bg-background overflow-hidden z-50">
       <div className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
         {hotelConfig.logo ? (
           <img
