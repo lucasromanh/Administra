@@ -7,10 +7,12 @@ import { useExpenses } from '@/hooks/useMockData';
 import { approveExpense, rejectExpense } from '@/lib/expenses';
 import { generateExpensesReport } from '@/lib/reports-pdf';
 import { Download, Plus } from 'lucide-react';
+import { useState } from 'react';
 import type { Expense } from '@/lib/types';
 
 export function ExpensesPage() {
   const [expenses, setExpenses] = useExpenses();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleDownloadReport = () => {
     generateExpensesReport(expenses);
@@ -30,6 +32,13 @@ export function ExpensesPage() {
       id: String(Date.now()),
     };
     setExpenses([...expenses, expense]);
+    setIsDialogOpen(false);
+  };
+
+  const handleChangeExpenseStatus = (expenseId: string, newStatus: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado') => {
+    setExpenses(expenses.map(expense => 
+      expense.id === expenseId ? { ...expense, status: newStatus } : expense
+    ));
   };
 
   return (
@@ -43,7 +52,7 @@ export function ExpensesPage() {
               <Download className="h-3 w-3" />
               Descargar Informe
             </Button>
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-2">
                   <Plus className="h-3 w-3" />
@@ -65,6 +74,7 @@ export function ExpensesPage() {
           expenses={expenses}
           onApprove={handleApprove}
           onReject={handleReject}
+          onChangeStatus={handleChangeExpenseStatus}
         />
       </div>
     </div>

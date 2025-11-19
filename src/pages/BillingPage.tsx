@@ -10,16 +10,134 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Download } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { Invoice } from '@/lib/types';
 
 export function BillingPage() {
-  const [invoices] = useInvoices();
-  const [customers] = useCustomers();
+  const [invoices, setInvoices] = useInvoices();
+  const [customers, setCustomers] = useCustomers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [subtotal, setSubtotal] = useState(0);
+  const [taxRate, setTaxRate] = useState(21);
+  const [total, setTotal] = useState(0);
 
   const handleDownloadReport = () => {
     generateBillingReport(invoices);
+  };
+
+  // Detectar facturas vencidas automáticamente
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updatedInvoices = invoices.map(invoice => {
+      if (invoice.status === 'pendiente') {
+        const dueDate = new Date(invoice.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        if (dueDate < today) {
+          return { ...invoice, status: 'vencida' as const };
+        }
+      }
+      return invoice;
+    });
+
+    // Solo actualizar si hay cambios
+    const hasChanges = updatedInvoices.some((inv, idx) => inv.status !== invoices[idx].status);
+    if (hasChanges) {
+      setInvoices(updatedInvoices);
+    }
+  }, [invoices, setInvoices]);
+
+  // Cambiar estado de factura manualmente
+  const handleChangeInvoiceStatus = (invoiceId: string, newStatus: Invoice['status']) => {
+    setInvoices(invoices.map(invoice => 
+      invoice.id === invoiceId ? { ...invoice, status: newStatus } : invoice
+    ));
+  };
+
+  // Calcular total automáticamente
+  const calculateTotal = (subtotalValue: number, taxRateValue: number) => {
+    const taxAmount = subtotalValue * (taxRateValue / 100);
+    const totalValue = subtotalValue + taxAmount;
+    setTotal(totalValue);
+  };
+
+  const handleSubtotalChange = (value: string) => {
+    const subtotalValue = parseFloat(value) || 0;
+    setSubtotal(subtotalValue);
+    calculateTotal(subtotalValue, taxRate);
+  };
+
+  const handleTaxRateChange = (value: string) => {
+    const taxRateValue = parseFloat(value) || 0;
+    setTaxRate(taxRateValue);
+    calculateTotal(subtotal, taxRateValue);
+  };
+
+  const handleCreateInvoice = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    let customerName = '';
+    let customerId = '';
+
+    if (isNewCustomer) {
+      // Crear nuevo cliente
+      customerName = formData.get('newCustomerName') as string;
+      customerId = `cust-${Date.now()}`;
+      
+      const newCustomer = {
+        id: customerId,
+        name: customerName,
+        rut: formData.get('newCustomerDoc') as string || '-',
+        email: formData.get('newCustomerEmail') as string,
+        phone: formData.get('newCustomerPhone') as string || '',
+        address: formData.get('newCustomerAddress') as string || '',
+        type: 'empresa' as const,
+        contactPerson: customerName,
+      };
+      
+      setCustomers([...customers, newCustomer]);
+    } else {
+      customerId = formData.get('customer') as string;
+      const customer = customers.find(c => c.id === customerId);
+      customerName = customer?.name || '';
+    }
+
+    // Generar número de factura con formato F-XXXXX-YYYY
+    const currentYear = new Date().getFullYear();
+    const invoiceNumber = invoices.length + 1;
+    const formattedNumber = `F-${String(invoiceNumber).padStart(5, '0')}-${currentYear}`;
+
+    const newInvoice = {
+      id: `inv-${Date.now()}`,
+      number: formattedNumber,
+      customerId: customerId,
+      customerName: customerName,
+      date: formData.get('date') as string,
+      dueDate: formData.get('dueDate') as string,
+      amount: total,
+      status: (formData.get('status') as 'pendiente' | 'pagada' | 'vencida' | 'anulada') || 'pendiente',
+      items: [{
+        id: `item-${Date.now()}`,
+        description: formData.get('concept') as string,
+        quantity: 1,
+        unitPrice: subtotal,
+        total: total,
+      }],
+      notes: formData.get('notes') as string || undefined,
+    };
+
+    setInvoices([newInvoice, ...invoices]);
+    setIsDialogOpen(false);
+    
+    // Reset form
+    setSubtotal(0);
+    setTaxRate(21);
+    setTotal(0);
+    setIsNewCustomer(false);
   };
 
   return (
@@ -50,6 +168,7 @@ export function BillingPage() {
             <InvoiceList
               invoices={invoices}
               onViewInvoice={(invoice) => console.log('Ver factura:', invoice)}
+              onChangeStatus={handleChangeInvoiceStatus}
             />
           </TabsContent>
           <TabsContent value="customers" className="mt-0">
@@ -66,7 +185,7 @@ export function BillingPage() {
               Crea una nueva factura para un cliente. Completa todos los campos requeridos.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
+          <form onSubmit={handleCreateInvoice} className="space-y-4">
             <div className="space-y-2">
               <Label>Tipo de Cliente *</Label>
               <div className="flex gap-4">
@@ -97,7 +216,7 @@ export function BillingPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer">Seleccionar Cliente *</Label>
-                  <Select>
+                  <Select name="customer" required>
                     <SelectTrigger id="customer">
                       <SelectValue placeholder="Buscar cliente guardado" />
                     </SelectTrigger>
@@ -112,7 +231,7 @@ export function BillingPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date">Fecha de Emisión *</Label>
-                  <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                  <Input name="date" id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
                 </div>
               </div>
             ) : (
@@ -126,30 +245,30 @@ export function BillingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="newCustomerName">Nombre Completo *</Label>
-                    <Input id="newCustomerName" placeholder="Ej: Juan Pérez" />
+                    <Input name="newCustomerName" id="newCustomerName" placeholder="Ej: Juan Pérez" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="newCustomerEmail">Email *</Label>
-                    <Input id="newCustomerEmail" type="email" placeholder="ejemplo@email.com" />
+                    <Input name="newCustomerEmail" id="newCustomerEmail" type="email" placeholder="ejemplo@email.com" required />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="newCustomerPhone">Teléfono</Label>
-                    <Input id="newCustomerPhone" placeholder="+34 600 123 456" />
+                    <Input name="newCustomerPhone" id="newCustomerPhone" placeholder="+34 600 123 456" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="newCustomerDoc">DNI/Pasaporte</Label>
-                    <Input id="newCustomerDoc" placeholder="12345678X" />
+                    <Input name="newCustomerDoc" id="newCustomerDoc" placeholder="12345678X" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="date">Fecha de Emisión *</Label>
-                    <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                    <Input name="date" id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newCustomerAddress">Dirección (opcional)</Label>
-                  <Input id="newCustomerAddress" placeholder="Calle, número, ciudad, país" />
+                  <Input name="newCustomerAddress" id="newCustomerAddress" placeholder="Calle, número, ciudad, país" />
                 </div>
               </>
             )}
@@ -157,18 +276,18 @@ export function BillingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Fecha de Vencimiento *</Label>
-                <Input id="dueDate" type="date" />
+                <Input name="dueDate" id="dueDate" type="date" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Estado *</Label>
-                <Select defaultValue="pending">
+                <Select name="status" defaultValue="pendiente">
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="paid">Pagada</SelectItem>
-                    <SelectItem value="overdue">Vencida</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="pagada">Pagada</SelectItem>
+                    <SelectItem value="vencida">Vencida</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -176,38 +295,79 @@ export function BillingPage() {
 
             <div className="space-y-2">
               <Label htmlFor="concept">Concepto *</Label>
-              <Input id="concept" placeholder="Ej: Hospedaje habitación 205" />
+              <Input name="concept" id="concept" placeholder="Ej: Hospedaje habitación 205" required />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="subtotal">Subtotal *</Label>
-                <Input id="subtotal" type="number" step="0.01" placeholder="0.00" />
+                <Input 
+                  name="subtotal" 
+                  id="subtotal" 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0.00"
+                  value={subtotal || ''}
+                  onChange={(e) => handleSubtotalChange(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tax">IVA (%) *</Label>
-                <Input id="tax" type="number" step="0.01" defaultValue="21" />
+                <Input 
+                  name="tax" 
+                  id="tax" 
+                  type="number" 
+                  step="0.01" 
+                  value={taxRate}
+                  onChange={(e) => handleTaxRateChange(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="total">Total</Label>
-                <Input id="total" type="number" step="0.01" placeholder="0.00" disabled />
+                <Input 
+                  id="total" 
+                  type="number" 
+                  step="0.01" 
+                  value={total.toFixed(2)}
+                  disabled 
+                  className="bg-muted font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span className="font-medium">${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>IVA ({taxRate}%):</span>
+                <span className="font-medium">${(subtotal * (taxRate / 100)).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-base font-bold border-t border-green-300 dark:border-green-700 mt-2 pt-2">
+                <span>Total:</span>
+                <span className="text-green-700 dark:text-green-300">${total.toFixed(2)}</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notas</Label>
-              <Input id="notes" placeholder="Notas adicionales (opcional)" />
+              <Input name="notes" id="notes" placeholder="Notas adicionales (opcional)" />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsDialogOpen(false);
+                setSubtotal(0);
+                setTaxRate(21);
+                setTotal(0);
+                setIsNewCustomer(false);
+              }}>
                 Cancelar
               </Button>
-              <Button type="submit" onClick={(e) => {
-                e.preventDefault();
-                setIsDialogOpen(false);
-                // Aquí iría la lógica para crear la factura
-              }}>
+              <Button type="submit">
                 Crear Factura
               </Button>
             </div>
