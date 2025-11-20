@@ -69,4 +69,9 @@ export const STORAGE_KEYS = {
   ADMIN_PHONE: 'admin_phone',
   HOTEL_ADDRESS: 'hotel_address',
   HOTEL_RUT: 'hotel_rut',
+  HOTEL_TOTAL_ROOMS: 'hotel_total_rooms',
+  HOTEL_ROOM_CATEGORIES: 'hotel_room_categories',
+  HOTEL_CHECKIN_TIME: 'hotel_checkin_time',
+  HOTEL_CHECKOUT_TIME: 'hotel_checkout_time',
+  HOTEL_NIGHTS_SOLD: 'hotel_nights_sold',
 } as const;

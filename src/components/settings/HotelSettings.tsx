@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, X, Hotel, User, Building2, Save } from 'lucide-react';
+import { Upload, X, Hotel, User, Building2, Save, BedDouble, Clock, Plus, Trash2 } from 'lucide-react';
 import { 
   getHotelConfig, 
   setHotelLogo, 
   convertImageToBase64,
-  updateHotelConfig
+  updateHotelConfig,
+  type RoomCategory
 } from '@/lib/hotelConfig';
 
 export function HotelSettings() {
@@ -21,6 +22,13 @@ export function HotelSettings() {
     phone: config.phone || '',
     address: config.address || '',
     rut: config.rut || '',
+  });
+  const [operationalData, setOperationalData] = useState({
+    totalRooms: config.totalRooms,
+    roomCategories: config.roomCategories,
+    checkinTime: config.checkinTime,
+    checkoutTime: config.checkoutTime,
+    nightsSold: String(config.nightsSold),
   });
   const [previewLogo, setPreviewLogo] = useState(config.logo);
   const [hasChanges, setHasChanges] = useState(false);
@@ -63,7 +71,60 @@ export function HotelSettings() {
     setHasChanges(true);
   };
 
+  const handleOperationalChange = (field: string, value: any) => {
+    setOperationalData({ ...operationalData, [field]: value });
+    setHasChanges(true);
+  };
+
+  const handleAddRoomCategory = () => {
+    const newCategory: RoomCategory = {
+      id: String(Date.now()),
+      name: 'Nueva Categoría',
+      quantity: 0,
+      basePrice: 0,
+    };
+    setOperationalData({
+      ...operationalData,
+      roomCategories: [...operationalData.roomCategories, newCategory],
+    });
+    setHasChanges(true);
+  };
+
+  const handleUpdateRoomCategory = (id: string, field: keyof RoomCategory, value: any) => {
+    setOperationalData({
+      ...operationalData,
+      roomCategories: operationalData.roomCategories.map(cat => {
+        if (cat.id === id) {
+          // Para campos numéricos, mantener el string para permitir edición
+          if (field === 'quantity' || field === 'basePrice') {
+            return { ...cat, [field]: value === '' ? 0 : parseInt(value) || 0 };
+          }
+          return { ...cat, [field]: value };
+        }
+        return cat;
+      }),
+    });
+    setHasChanges(true);
+  };
+
+  const handleDeleteRoomCategory = (id: string) => {
+    setOperationalData({
+      ...operationalData,
+      roomCategories: operationalData.roomCategories.filter(cat => cat.id !== id),
+    });
+    setHasChanges(true);
+  };
+
   const handleSaveAll = () => {
+    // Calcular total de habitaciones desde las categorías
+    const totalFromCategories = operationalData.roomCategories.reduce(
+      (sum, cat) => sum + cat.quantity,
+      0
+    );
+    
+    // Convertir nightsSold de string a número
+    const nightsSoldValue = operationalData.nightsSold === '' ? 0 : parseInt(operationalData.nightsSold) || 0;
+    
     updateHotelConfig({
       name: formData.hotelName,
       adminName: formData.adminName,
@@ -71,7 +132,12 @@ export function HotelSettings() {
       phone: formData.phone,
       address: formData.address,
       rut: formData.rut,
-      logo: config.logo
+      logo: config.logo,
+      totalRooms: totalFromCategories,
+      roomCategories: operationalData.roomCategories,
+      checkinTime: operationalData.checkinTime,
+      checkoutTime: operationalData.checkoutTime,
+      nightsSold: nightsSoldValue,
     });
     setHasChanges(false);
     alert('Configuración guardada exitosamente');
@@ -81,7 +147,7 @@ export function HotelSettings() {
   return (
     <div className="w-full">
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="general" className="text-xs">
             <Hotel className="h-3 w-3 mr-2" />
             Información General
@@ -89,6 +155,10 @@ export function HotelSettings() {
           <TabsTrigger value="admin" className="text-xs">
             <User className="h-3 w-3 mr-2" />
             Administrador
+          </TabsTrigger>
+          <TabsTrigger value="operational" className="text-xs">
+            <BedDouble className="h-3 w-3 mr-2" />
+            Operacional
           </TabsTrigger>
           <TabsTrigger value="branding" className="text-xs">
             <Building2 className="h-3 w-3 mr-2" />
@@ -187,6 +257,158 @@ export function HotelSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Configuración Operacional */}
+        <TabsContent value="operational" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Categorías de Habitaciones</CardTitle>
+              <CardDescription className="text-xs">
+                Define las categorías de habitaciones y su capacidad
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  Estas categorías se usan para calcular la ocupación y los indicadores del dashboard
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {operationalData.roomCategories.map((category) => (
+                  <div key={category.id} className="flex gap-2 items-end p-3 border rounded-lg bg-muted/50">
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-xs">Nombre de Categoría</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => handleUpdateRoomCategory(category.id, 'name', e.target.value)}
+                        placeholder="Ej: Estándar, Suite, Deluxe"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="w-32 space-y-2">
+                      <Label className="text-xs">Cantidad</Label>
+                      <Input
+                        type="number"
+                        value={category.quantity || ''}
+                        onChange={(e) => handleUpdateRoomCategory(category.id, 'quantity', e.target.value)}
+                        placeholder="0"
+                        className="h-9"
+                        min="0"
+                      />
+                    </div>
+                    <div className="w-36 space-y-2">
+                      <Label className="text-xs">Precio Base</Label>
+                      <Input
+                        type="number"
+                        value={category.basePrice || ''}
+                        onChange={(e) => handleUpdateRoomCategory(category.id, 'basePrice', e.target.value)}
+                        placeholder="0"
+                        className="h-9"
+                        min="0"
+                      />
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteRoomCategory(category.id)}
+                      className="h-9"
+                      disabled={operationalData.roomCategories.length <= 1}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddRoomCategory}
+                className="w-full"
+              >
+                <Plus className="h-3 w-3 mr-2" />
+                Agregar Categoría
+              </Button>
+
+              <div className="pt-3 border-t">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Total de Habitaciones:</span>
+                  <span className="text-lg font-bold text-primary">
+                    {operationalData.roomCategories.reduce((sum, cat) => sum + cat.quantity, 0)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Horarios</CardTitle>
+                <CardDescription className="text-xs">
+                  Define los horarios de check-in y check-out
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="checkin" className="text-xs flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Hora de Check-in
+                  </Label>
+                  <Input
+                    id="checkin"
+                    type="time"
+                    value={operationalData.checkinTime}
+                    onChange={(e) => handleOperationalChange('checkinTime', e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="checkout" className="text-xs flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Hora de Check-out
+                  </Label>
+                  <Input
+                    id="checkout"
+                    type="time"
+                    value={operationalData.checkoutTime}
+                    onChange={(e) => handleOperationalChange('checkoutTime', e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Indicadores</CardTitle>
+                <CardDescription className="text-xs">
+                  Datos para métricas del dashboard
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nightsSold" className="text-xs">
+                    Noches Vendidas (Mes Actual)
+                  </Label>
+                  <Input
+                    id="nightsSold"
+                    type="number"
+                    value={operationalData.nightsSold || ''}
+                    onChange={(e) => handleOperationalChange('nightsSold', e.target.value)}
+                    placeholder="0"
+                    className="h-9"
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este valor se usa para calcular la ocupación en el dashboard
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Logo y Marca */}
