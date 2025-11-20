@@ -1,11 +1,13 @@
 import { Header } from '@/components/layout/Header';
-import { KPICard } from '@/components/reports/KPICard';
+import { EditableKPICard } from '@/components/reports/EditableKPICard';
 import { useKPIs, useInvoices, useExpenses, useHotelMetrics } from '@/hooks/useMockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, FileText, Receipt, TrendingUp, Hotel, Users, Download } from 'lucide-react';
 import { generateDashboardReport } from '@/lib/reports-pdf';
 import { getHotelConfig } from '@/lib/hotelConfig';
+import { useState } from 'react';
+import { storage } from '@/lib/storage';
 
 export function DashboardPage() {
   const [kpis] = useKPIs();
@@ -13,14 +15,46 @@ export function DashboardPage() {
   const [expenses] = useExpenses();
   const [metrics] = useHotelMetrics();
   const hotelConfig = getHotelConfig();
+  
+  // Estados para KPIs editables
+  const [adr, setADR] = useState(storage.get<number>('kpi_adr', 75000));
+  const [totalRevenue, setTotalRevenue] = useState(storage.get<number>('kpi_total_revenue', 15000000));
+  const [gop, setGOP] = useState(storage.get<number>('kpi_gop', 5000000));
 
   const pendingInvoices = invoices.filter((inv) => inv.status === 'pendiente' || inv.status === 'vencida');
   const pendingExpenses = expenses.filter((exp) => exp.status === 'pendiente');
   
-  // Calcular ocupación: (noches vendidas / (total habitaciones * días del mes)) * 100
+  // Calcular días según el período configurado
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const maxNights = hotelConfig.totalRooms * daysInMonth;
-  const occupancyRate = maxNights > 0 ? ((hotelConfig.nightsSold / maxNights) * 100).toFixed(1) : '0';
+  const daysInPeriod = hotelConfig.nightsSoldPeriod === 'daily' ? 1 :
+                       hotelConfig.nightsSoldPeriod === 'weekly' ? 7 :
+                       daysInMonth;
+  
+  // Calcular ocupación: (noches vendidas / (total habitaciones * días del período)) * 100
+  const maxNights = hotelConfig.totalRooms * daysInPeriod;
+  const occupancyRate = maxNights > 0 ? ((hotelConfig.nightsSold / maxNights) * 100) : 0;
+  
+  // Calcular RevPAR: (ADR * Ocupación) / 100
+  const revpar = (adr * occupancyRate) / 100;
+  
+  // GOP se ingresa manualmente o se calcula como: Ingresos Totales - Gastos Operacionales
+  const calculatedGOP = totalRevenue - expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  
+  // Funciones para guardar valores editados
+  const handleSaveADR = (value: number) => {
+    setADR(value);
+    storage.set('kpi_adr', value);
+  };
+  
+  const handleSaveTotalRevenue = (value: number) => {
+    setTotalRevenue(value);
+    storage.set('kpi_total_revenue', value);
+  };
+  
+  const handleSaveGOP = (value: number) => {
+    setGOP(value);
+    storage.set('kpi_gop', value);
+  };
 
   const handleDownloadReport = () => {
     generateDashboardReport(kpis, metrics, invoices, expenses);
@@ -49,11 +83,54 @@ export function DashboardPage() {
       <div className="px-6 py-4 space-y-6 w-full">
         {/* Métricas Hoteleras */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Métricas Hoteleras</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium">Métricas Hoteleras</h3>
+          </div>
+          
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
+              📊 Los valores en <strong>azul</strong> son calculados automáticamente. Los valores en <strong>gris</strong> son editables (haz clic en el botón de editar)
+            </p>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {kpis.map((kpi) => (
-              <KPICard key={kpi.id} kpi={kpi} />
-            ))}
+            <EditableKPICard
+              name="ADR (Tarifa Promedio)"
+              value={adr}
+              change={5.2}
+              format="currency"
+              editable={true}
+              onEdit={handleSaveADR}
+            />
+            
+            <EditableKPICard
+              name="Ocupación"
+              value={occupancyRate}
+              change={2.1}
+              format="percentage"
+              isCalculated={true}
+              calculationInfo="Calculado desde noches vendidas"
+              editable={false}
+            />
+            
+            <EditableKPICard
+              name="RevPAR"
+              value={revpar}
+              change={7.8}
+              format="currency"
+              isCalculated={true}
+              calculationInfo="ADR × Ocupación"
+              editable={false}
+            />
+            
+            <EditableKPICard
+              name="GOP (Beneficio)"
+              value={gop}
+              change={-1.5}
+              format="currency"
+              editable={true}
+              onEdit={handleSaveGOP}
+            />
           </div>
         </div>
 
@@ -65,7 +142,7 @@ export function DashboardPage() {
           
           <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
             <p className="text-xs text-blue-800 dark:text-blue-200">
-              💡 Para modificar la cantidad de habitaciones o las noches vendidas del mes actual, ve a <strong>Configuración &gt; Operacional</strong>
+              💡 Para modificar la cantidad de habitaciones, noches vendidas y el período (diario/semanal/mensual), ve a <strong>Configuración &gt; Operacional</strong>
             </p>
           </div>
 
@@ -95,7 +172,9 @@ export function DashboardPage() {
               <CardContent>
                 <div className="text-xl font-bold">{hotelConfig.nightsSold}</div>
                 <p className="text-[10px] text-muted-foreground">
-                  Este mes
+                  {hotelConfig.nightsSoldPeriod === 'daily' ? 'Hoy' :
+                   hotelConfig.nightsSoldPeriod === 'weekly' ? 'Esta semana' :
+                   'Este mes'}
                 </p>
               </CardContent>
             </Card>
@@ -110,7 +189,9 @@ export function DashboardPage() {
               <CardContent>
                 <div className="text-xl font-bold">{occupancyRate}%</div>
                 <p className="text-[10px] text-muted-foreground">
-                  Mes actual ({daysInMonth} días)
+                  {hotelConfig.nightsSoldPeriod === 'daily' ? 'Hoy (1 día)' :
+                   hotelConfig.nightsSoldPeriod === 'weekly' ? 'Semana (7 días)' :
+                   `Mes (${daysInMonth} días)`}
                 </p>
               </CardContent>
             </Card>

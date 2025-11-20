@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, X, Hotel, User, Building2, Save, BedDouble, Clock, Plus, Trash2 } from 'lucide-react';
 import { 
   getHotelConfig, 
@@ -29,6 +30,7 @@ export function HotelSettings() {
     checkinTime: config.checkinTime,
     checkoutTime: config.checkoutTime,
     nightsSold: String(config.nightsSold),
+    nightsSoldPeriod: config.nightsSoldPeriod,
   });
   const [previewLogo, setPreviewLogo] = useState(config.logo);
   const [hasChanges, setHasChanges] = useState(false);
@@ -138,6 +140,7 @@ export function HotelSettings() {
       checkinTime: operationalData.checkinTime,
       checkoutTime: operationalData.checkoutTime,
       nightsSold: nightsSoldValue,
+      nightsSoldPeriod: operationalData.nightsSoldPeriod,
     });
     setHasChanges(false);
     alert('Configuración guardada exitosamente');
@@ -390,8 +393,34 @@ export function HotelSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="nightsSoldPeriod" className="text-xs">
+                    Período de Registro
+                  </Label>
+                  <Select
+                    value={operationalData.nightsSoldPeriod}
+                    onValueChange={(value) => handleOperationalChange('nightsSoldPeriod', value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Diario</SelectItem>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Indica el período de tiempo para las noches vendidas
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="nightsSold" className="text-xs">
-                    Noches Vendidas (Mes Actual)
+                    Noches Vendidas ({
+                      operationalData.nightsSoldPeriod === 'daily' ? 'Hoy' :
+                      operationalData.nightsSoldPeriod === 'weekly' ? 'Esta Semana' :
+                      'Este Mes'
+                    })
                   </Label>
                   <Input
                     id="nightsSold"

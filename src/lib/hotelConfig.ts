@@ -7,6 +7,8 @@ export interface RoomCategory {
   basePrice: number;
 }
 
+export type NightsSoldPeriod = 'daily' | 'weekly' | 'monthly';
+
 export interface HotelConfig {
   name: string;
   logo?: string; // Base64 string
@@ -21,6 +23,7 @@ export interface HotelConfig {
   checkinTime: string;
   checkoutTime: string;
   nightsSold: number;
+  nightsSoldPeriod: NightsSoldPeriod;
 }
 
 export const getHotelConfig = (): HotelConfig => {
@@ -40,10 +43,11 @@ export const getHotelConfig = (): HotelConfig => {
   const checkinTime = storage.get<string>(STORAGE_KEYS.HOTEL_CHECKIN_TIME, '15:00');
   const checkoutTime = storage.get<string>(STORAGE_KEYS.HOTEL_CHECKOUT_TIME, '12:00');
   const nightsSold = storage.get<number>(STORAGE_KEYS.HOTEL_NIGHTS_SOLD, 0);
+  const nightsSoldPeriod = storage.get<NightsSoldPeriod>(STORAGE_KEYS.HOTEL_NIGHTS_SOLD_PERIOD, 'monthly');
   
   return { 
     name, logo, adminName, email, phone, address, rut,
-    totalRooms, roomCategories, checkinTime, checkoutTime, nightsSold
+    totalRooms, roomCategories, checkinTime, checkoutTime, nightsSold, nightsSoldPeriod
   };
 };
 
@@ -95,6 +99,10 @@ export const setNightsSold = (nights: number) => {
   storage.set(STORAGE_KEYS.HOTEL_NIGHTS_SOLD, nights);
 };
 
+export const setNightsSoldPeriod = (period: NightsSoldPeriod) => {
+  storage.set(STORAGE_KEYS.HOTEL_NIGHTS_SOLD_PERIOD, period);
+};
+
 export const updateHotelConfig = (config: Partial<HotelConfig>) => {
   if (config.name !== undefined) setHotelName(config.name);
   if (config.logo !== undefined) setHotelLogo(config.logo);
@@ -108,6 +116,7 @@ export const updateHotelConfig = (config: Partial<HotelConfig>) => {
   if (config.checkinTime !== undefined) setCheckinTime(config.checkinTime);
   if (config.checkoutTime !== undefined) setCheckoutTime(config.checkoutTime);
   if (config.nightsSold !== undefined) setNightsSold(config.nightsSold);
+  if (config.nightsSoldPeriod !== undefined) setNightsSoldPeriod(config.nightsSoldPeriod);
 };
 
 export const convertImageToBase64 = (file: File): Promise<string> => {
