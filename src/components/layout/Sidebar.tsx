@@ -13,6 +13,9 @@ import {
   LogOut,
   Hotel,
   Settings,
+  Package,
+  Users,
+  ClipboardCheck,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -49,6 +52,21 @@ export function Sidebar() {
       name: 'Gastos',
       href: '/expenses',
       icon: <Receipt className="h-4 w-4" />,
+    },
+    {
+      name: 'Control de Stock',
+      href: '/stock',
+      icon: <Package className="h-4 w-4" />,
+    },
+    {
+      name: 'Liquidación de Sueldos',
+      href: '/payroll',
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      name: 'Auditoría',
+      href: '/audit',
+      icon: <ClipboardCheck className="h-4 w-4" />,
     },
     {
       name: 'Reportes',

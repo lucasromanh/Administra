@@ -24,6 +24,7 @@ export interface HotelConfig {
   checkoutTime: string;
   nightsSold: number;
   nightsSoldPeriod: NightsSoldPeriod;
+  occupiedRooms: number;
 }
 
 export const getHotelConfig = (): HotelConfig => {
@@ -44,10 +45,11 @@ export const getHotelConfig = (): HotelConfig => {
   const checkoutTime = storage.get<string>(STORAGE_KEYS.HOTEL_CHECKOUT_TIME, '12:00');
   const nightsSold = storage.get<number>(STORAGE_KEYS.HOTEL_NIGHTS_SOLD, 0);
   const nightsSoldPeriod = storage.get<NightsSoldPeriod>(STORAGE_KEYS.HOTEL_NIGHTS_SOLD_PERIOD, 'monthly');
+  const occupiedRooms = storage.get<number>(STORAGE_KEYS.HOTEL_OCCUPIED_ROOMS, 0);
   
   return { 
     name, logo, adminName, email, phone, address, rut,
-    totalRooms, roomCategories, checkinTime, checkoutTime, nightsSold, nightsSoldPeriod
+    totalRooms, roomCategories, checkinTime, checkoutTime, nightsSold, nightsSoldPeriod, occupiedRooms
   };
 };
 
@@ -103,6 +105,10 @@ export const setNightsSoldPeriod = (period: NightsSoldPeriod) => {
   storage.set(STORAGE_KEYS.HOTEL_NIGHTS_SOLD_PERIOD, period);
 };
 
+export const setOccupiedRooms = (occupied: number) => {
+  storage.set(STORAGE_KEYS.HOTEL_OCCUPIED_ROOMS, occupied);
+};
+
 export const updateHotelConfig = (config: Partial<HotelConfig>) => {
   if (config.name !== undefined) setHotelName(config.name);
   if (config.logo !== undefined) setHotelLogo(config.logo);
@@ -117,6 +123,7 @@ export const updateHotelConfig = (config: Partial<HotelConfig>) => {
   if (config.checkoutTime !== undefined) setCheckoutTime(config.checkoutTime);
   if (config.nightsSold !== undefined) setNightsSold(config.nightsSold);
   if (config.nightsSoldPeriod !== undefined) setNightsSoldPeriod(config.nightsSoldPeriod);
+  if (config.occupiedRooms !== undefined) setOccupiedRooms(config.occupiedRooms);
 };
 
 export const convertImageToBase64 = (file: File): Promise<string> => {

@@ -31,6 +31,7 @@ export function HotelSettings() {
     checkoutTime: config.checkoutTime,
     nightsSold: String(config.nightsSold),
     nightsSoldPeriod: config.nightsSoldPeriod,
+    occupiedRooms: String(config.occupiedRooms),
   });
   const [previewLogo, setPreviewLogo] = useState(config.logo);
   const [hasChanges, setHasChanges] = useState(false);
@@ -124,8 +125,9 @@ export function HotelSettings() {
       0
     );
     
-    // Convertir nightsSold de string a número
+    // Convertir nightsSold y occupiedRooms de string a número
     const nightsSoldValue = operationalData.nightsSold === '' ? 0 : parseInt(operationalData.nightsSold) || 0;
+    const occupiedRoomsValue = operationalData.occupiedRooms === '' ? 0 : parseInt(operationalData.occupiedRooms) || 0;
     
     updateHotelConfig({
       name: formData.hotelName,
@@ -141,6 +143,7 @@ export function HotelSettings() {
       checkoutTime: operationalData.checkoutTime,
       nightsSold: nightsSoldValue,
       nightsSoldPeriod: operationalData.nightsSoldPeriod,
+      occupiedRooms: occupiedRoomsValue,
     });
     setHasChanges(false);
     alert('Configuración guardada exitosamente');
@@ -432,7 +435,25 @@ export function HotelSettings() {
                     min="0"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Este valor se usa para calcular la ocupación en el dashboard
+                    Total de room-nights vendidos en el período
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="occupiedRooms" className="text-xs">
+                    Habitaciones Ocupadas (Ahora)
+                  </Label>
+                  <Input
+                    id="occupiedRooms"
+                    type="number"
+                    value={operationalData.occupiedRooms || ''}
+                    onChange={(e) => handleOperationalChange('occupiedRooms', e.target.value)}
+                    placeholder="0"
+                    className="h-9"
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cantidad actual de habitaciones ocupadas
                   </p>
                 </div>
               </CardContent>

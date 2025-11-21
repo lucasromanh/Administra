@@ -9,6 +9,9 @@ import { ExpensesPage } from '@/pages/ExpensesPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { StockPage } from '@/pages/StockPage';
+import { PayrollPage } from '@/pages/PayrollPage';
+import { AuditPage } from '@/pages/AuditPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -62,6 +65,18 @@ const router = createBrowserRouter([
   {
     path: '/settings',
     element: <ProtectedRoute><SettingsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/stock',
+    element: <ProtectedRoute><StockPage /></ProtectedRoute>,
+  },
+  {
+    path: '/payroll',
+    element: <ProtectedRoute><PayrollPage /></ProtectedRoute>,
+  },
+  {
+    path: '/audit',
+    element: <ProtectedRoute><AuditPage /></ProtectedRoute>,
   },
 ]);
 

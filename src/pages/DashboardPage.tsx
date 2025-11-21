@@ -3,11 +3,16 @@ import { EditableKPICard } from '@/components/reports/EditableKPICard';
 import { useKPIs, useInvoices, useExpenses, useHotelMetrics } from '@/hooks/useMockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart3, FileText, Receipt, TrendingUp, Hotel, Users, Download } from 'lucide-react';
 import { generateDashboardReport } from '@/lib/reports-pdf';
 import { getHotelConfig } from '@/lib/hotelConfig';
 import { useState } from 'react';
 import { storage } from '@/lib/storage';
+import { useNavigate } from 'react-router-dom';
 
 export function DashboardPage() {
   const [kpis] = useKPIs();
@@ -18,8 +23,13 @@ export function DashboardPage() {
   
   // Estados para KPIs editables
   const [adr, setADR] = useState(storage.get<number>('kpi_adr', 75000));
-  const [totalRevenue, setTotalRevenue] = useState(storage.get<number>('kpi_total_revenue', 15000000));
   const [gop, setGOP] = useState(storage.get<number>('kpi_gop', 5000000));
+  
+  // Estados para selector de período de reporte
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportPeriod, setReportPeriod] = useState<'today' | 'week' | 'month' | 'custom'>('month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const pendingInvoices = invoices.filter((inv) => inv.status === 'pendiente' || inv.status === 'vencida');
   const pendingExpenses = expenses.filter((exp) => exp.status === 'pendiente');
@@ -30,25 +40,25 @@ export function DashboardPage() {
                        hotelConfig.nightsSoldPeriod === 'weekly' ? 7 :
                        daysInMonth;
   
-  // Calcular ocupación: (noches vendidas / (total habitaciones * días del período)) * 100
-  const maxNights = hotelConfig.totalRooms * daysInPeriod;
-  const occupancyRate = maxNights > 0 ? ((hotelConfig.nightsSold / maxNights) * 100) : 0;
+  // Calcular ocupación: (habitaciones ocupadas promedio / total habitaciones) * 100
+  // Si vendiste 3 noches en un mes con 60 habitaciones:
+  // - Capacidad total del período: 60 hab × 30 días = 1800 noches posibles
+  // - Ocupación: (3 noches vendidas / 1800) × 100 = 0.17%
+  // 
+  // Interpretación: Las "noches vendidas" son room-nights totales del período
+  const totalCapacity = hotelConfig.totalRooms * daysInPeriod;
+  const occupancyRate = totalCapacity > 0 ? ((hotelConfig.nightsSold / totalCapacity) * 100) : 0;
   
   // Calcular RevPAR: (ADR * Ocupación) / 100
   const revpar = (adr * occupancyRate) / 100;
   
-  // GOP se ingresa manualmente o se calcula como: Ingresos Totales - Gastos Operacionales
-  const calculatedGOP = totalRevenue - expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  // Navegación
+  const navigate = useNavigate();
   
   // Funciones para guardar valores editados
   const handleSaveADR = (value: number) => {
     setADR(value);
     storage.set('kpi_adr', value);
-  };
-  
-  const handleSaveTotalRevenue = (value: number) => {
-    setTotalRevenue(value);
-    storage.set('kpi_total_revenue', value);
   };
   
   const handleSaveGOP = (value: number) => {
@@ -57,10 +67,42 @@ export function DashboardPage() {
   };
 
   const handleDownloadReport = () => {
+    setReportDialogOpen(true);
+  };
+  
+  const handleConfirmDownload = () => {
+    // Aquí filtrarías los datos según el período seleccionado
+    let periodLabel = '';
+    switch(reportPeriod) {
+      case 'today':
+        periodLabel = 'Hoy';
+        break;
+      case 'week':
+        periodLabel = 'Esta Semana';
+        break;
+      case 'month':
+        periodLabel = 'Este Mes';
+        break;
+      case 'custom':
+        periodLabel = `${customStartDate} a ${customEndDate}`;
+        break;
+    }
+    
+    // Generar reporte con el período seleccionado
     generateDashboardReport(kpis, metrics, invoices, expenses);
+    setReportDialogOpen(false);
+    
+    // Mostrar confirmación
+    alert(`Informe generado para: ${periodLabel}`);
   };
 
   const formatCurrency = (value: number) => {
+    // Usar notación compacta para valores grandes
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP',
@@ -134,64 +176,93 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Indicadores Operacionales */}
+        {/* Estado de Habitaciones */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium">Indicadores Operacionales</h3>
+            <h3 className="text-sm font-medium">Estado de Habitaciones</h3>
           </div>
           
           <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
             <p className="text-xs text-blue-800 dark:text-blue-200">
-              💡 Para modificar la cantidad de habitaciones, noches vendidas y el período (diario/semanal/mensual), ve a <strong>Configuración &gt; Operacional</strong>
+              💡 Para modificar estas cantidades, ve a <strong>Configuración &gt; Operacional</strong>
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xs font-medium">
-                  Habitaciones Disponibles
+                  Total de Habitaciones
                 </CardTitle>
                 <Hotel className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{hotelConfig.totalRooms}</div>
+                <div className="text-2xl font-bold">{hotelConfig.totalRooms}</div>
                 <p className="text-[10px] text-muted-foreground">
-                  Total de habitaciones
+                  Capacidad del hotel
                 </p>
               </CardContent>
             </Card>
 
+            <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-green-900 dark:text-green-100">
+                  Habitaciones Disponibles
+                </CardTitle>
+                <Hotel className="h-3 w-3 text-green-600 dark:text-green-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                  {hotelConfig.totalRooms - hotelConfig.occupiedRooms}
+                </div>
+                <p className="text-[10px] text-green-700 dark:text-green-300">
+                  Listas para ocupar
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                  Habitaciones Ocupadas
+                </CardTitle>
+                <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                  {hotelConfig.occupiedRooms}
+                </div>
+                <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                  {hotelConfig.totalRooms > 0 
+                    ? `${Math.round((hotelConfig.occupiedRooms / hotelConfig.totalRooms) * 100)}% de ocupación`
+                    : '0% de ocupación'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Indicadores Operacionales */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium">Indicadores de Ventas</h3>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xs font-medium">
                   Noches Vendidas
                 </CardTitle>
-                <Users className="h-3 w-3 text-muted-foreground" />
+                <BarChart3 className="h-3 w-3 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{hotelConfig.nightsSold}</div>
+                <div className="text-2xl font-bold">{hotelConfig.nightsSold}</div>
                 <p className="text-[10px] text-muted-foreground">
                   {hotelConfig.nightsSoldPeriod === 'daily' ? 'Hoy' :
                    hotelConfig.nightsSoldPeriod === 'weekly' ? 'Esta semana' :
                    'Este mes'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium">
-                  Ocupación
-                </CardTitle>
-                <BarChart3 className="h-3 w-3 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold">{occupancyRate}%</div>
-                <p className="text-[10px] text-muted-foreground">
-                  {hotelConfig.nightsSoldPeriod === 'daily' ? 'Hoy (1 día)' :
-                   hotelConfig.nightsSoldPeriod === 'weekly' ? 'Semana (7 días)' :
-                   `Mes (${daysInMonth} días)`}
                 </p>
               </CardContent>
             </Card>
@@ -234,7 +305,10 @@ export function DashboardPage() {
 
         {/* Resumen de Tareas Pendientes */}
         <div className="grid gap-3 md:grid-cols-2">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:border-orange-300 hover:shadow-md transition-all"
+            onClick={() => navigate('/billing')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-medium">
                 Facturas Pendientes
@@ -244,12 +318,15 @@ export function DashboardPage() {
             <CardContent>
               <div className="text-xl font-bold">{pendingInvoices.length}</div>
               <p className="text-[10px] text-muted-foreground">
-                Requieren seguimiento
+                Requieren seguimiento →
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:border-orange-300 hover:shadow-md transition-all"
+            onClick={() => navigate('/expenses')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-medium">
                 Gastos Por Aprobar
@@ -259,7 +336,7 @@ export function DashboardPage() {
             <CardContent>
               <div className="text-xl font-bold">{pendingExpenses.length}</div>
               <p className="text-xs text-muted-foreground">
-                Esperando revisión
+                Esperando revisión →
               </p>
             </CardContent>
           </Card>
@@ -297,6 +374,74 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Diálogo de selección de período para reportes */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Descargar Informe</DialogTitle>
+            <DialogDescription>
+              Selecciona el período del informe que deseas generar
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="report-period">Período</Label>
+              <Select value={reportPeriod} onValueChange={(value: any) => setReportPeriod(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Hoy</SelectItem>
+                  <SelectItem value="week">Esta Semana</SelectItem>
+                  <SelectItem value="month">Este Mes</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {reportPeriod === 'custom' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="start-date">Fecha Inicio</Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="end-date">Fecha Fin</Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                📊 El informe incluirá: KPIs, métricas operacionales, facturas y gastos del período seleccionado
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmDownload}>
+                <Download className="h-4 w-4 mr-2" />
+                Generar Informe
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

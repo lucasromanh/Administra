@@ -113,6 +113,12 @@ export type ExpenseCategory =
   | 'lavanderia'
   | 'rrhh'
   | 'servicios-basicos'
+  | 'servicios-luz'
+  | 'servicios-internet'
+  | 'servicios-agua'
+  | 'servicios-gas'
+  | 'suministros'
+  | 'stock-hotel'
   | 'marketing'
   | 'tecnologia'
   | 'administracion'
@@ -158,6 +164,162 @@ export interface Task {
   assignedTo?: string;
   createdAt: string;
   category: 'auditoria' | 'conciliacion' | 'reporte' | 'pago' | 'vencimiento' | 'otro';
+}
+
+// === STOCK ===
+export interface StockItem {
+  id: string;
+  name: string;
+  category: StockCategory;
+  quantity: number;
+  unit: string; // unidad, paquete, caja, litro, etc.
+  minStock: number;
+  location: string; // Bodega, Piso 1, Lavandería, etc.
+  supplier?: string;
+  lastRestockDate?: string;
+  cost: number; // costo unitario
+}
+
+export type StockCategory = 
+  | 'amenities' // jabones, shampoo, acondicionador
+  | 'ropa-cama' // sábanas, fundas, protectores
+  | 'toallas' // toallas baño, mano, piso
+  | 'uniformes' // staff uniforms
+  | 'limpieza' // productos de limpieza
+  | 'lavanderia' // detergentes, suavizantes
+  | 'papeleria' // papel higiénico, servilletas
+  | 'alimentos' // desayuno, minibar
+  | 'bebidas' // minibar, agua
+  | 'mantenimiento' // herramientas, repuestos
+  | 'otros';
+
+export interface StockMovement {
+  id: string;
+  itemId: string;
+  itemName: string;
+  type: 'entrada' | 'salida' | 'ajuste';
+  quantity: number;
+  date: string;
+  reason: string;
+  performedBy: string;
+  cost?: number;
+}
+
+// === EMPLEADOS Y LIQUIDACIONES ===
+export interface Employee {
+  id: string;
+  name: string;
+  rut: string;
+  position: string;
+  department: 'recepcion' | 'housekeeping' | 'mantenimiento' | 'administracion' | 'cocina' | 'bar' | 'seguridad';
+  startDate: string;
+  salary: number; // sueldo base
+  bankAccount?: string;
+  email?: string;
+  phone?: string;
+  status: 'activo' | 'inactivo' | 'licencia' | 'vacaciones';
+}
+
+export interface PayrollItem {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  period: string; // YYYY-MM (año-mes)
+  baseSalary: number;
+  bonuses: PayrollBonus[];
+  advances: number; // adelantos
+  deductions: PayrollDeduction[];
+  netSalary: number;
+  status: 'borrador' | 'calculado' | 'pagado';
+  paymentDate?: string;
+  createdAt: string;
+}
+
+export interface PayrollBonus {
+  concept: string; // Aguinaldo, Bono, Horas Extra, Comisión
+  amount: number;
+  taxable: boolean; // true = imponible, false = no remunerativo
+}
+
+export interface PayrollDeduction {
+  concept: string; // AFP, Salud, Impuestos, Préstamo
+  amount: number;
+  type: 'legal' | 'voluntario';
+}
+
+// === OCUPACIONES Y RESERVAS ===
+export interface RoomBooking {
+  id: string;
+  roomNumber: string;
+  guestName: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  roomType: string;
+  // Clasificación de ventas
+  bookingType: 'directo' | 'booking' | 'airbnb' | 'corporativo' | 'agencia' | 'walk-in';
+  rateType: 'tarifa-rack' | 'descuento' | 'promocion' | 'corporativa' | 'grupo';
+  // Precios
+  baseRate: number;
+  discountPercent?: number;
+  finalRate: number;
+  totalAmount: number;
+  // Comisiones
+  commission?: number;
+  commissionPercent?: number;
+  netAmount: number;
+  // Estado
+  status: 'reserva' | 'checked-in' | 'checked-out' | 'cancelada' | 'no-show';
+  paymentStatus: 'pendiente' | 'pagado-parcial' | 'pagado-total';
+}
+
+// === AUDITORÍA ===
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: AuditAction;
+  module: AuditModule;
+  entityId: string;
+  entityType: string;
+  changes?: Record<string, any>;
+  ipAddress?: string;
+  description: string;
+}
+
+export type AuditAction = 
+  | 'crear'
+  | 'editar'
+  | 'eliminar'
+  | 'aprobar'
+  | 'rechazar'
+  | 'pagar'
+  | 'anular';
+
+export type AuditModule = 
+  | 'facturas'
+  | 'gastos'
+  | 'stock'
+  | 'empleados'
+  | 'liquidaciones'
+  | 'banco'
+  | 'configuracion';
+
+export interface AuditReport {
+  id: string;
+  name: string;
+  period: string;
+  generatedAt: string;
+  generatedBy: string;
+  type: 'facturas' | 'gastos' | 'stock' | 'liquidaciones' | 'completo';
+  summary: {
+    totalIngresos: number;
+    totalEgresos: number;
+    totalStock: number;
+    totalLiquidaciones: number;
+    discrepancies: number;
+  };
+  data: any;
 }
 
 // === NAVIGATION ===
