@@ -39,7 +39,7 @@ export function UploadBankFileModal({ selectedAccountId, onMovementsProcessed }:
     const records = lines.slice(1); // Skip header
     
     return records.map((line, index) => {
-      const [date, description, amount, type] = line.split(',').map(s => s.trim());
+      const [date, description, amount] = line.split(',').map(s => s.trim());
       const parsedAmount = parseFloat(amount) || 0;
       
       return {

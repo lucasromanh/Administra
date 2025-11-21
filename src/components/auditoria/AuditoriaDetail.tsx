@@ -7,8 +7,7 @@ import {
   Package, 
   Users, 
   Building2,
-  AlertTriangle,
-  CheckCircle
+  AlertTriangle
 } from 'lucide-react';
 import type { AuditoriaCompleta } from '@/lib/types';
 import { AuditoriaAlerts } from './AuditoriaAlerts';

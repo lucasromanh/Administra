@@ -88,7 +88,7 @@ export function AuditPage() {
 
     // Análisis de Sueldos
     const payrollEnPeriodo = payrollItems.filter(item => {
-      const fecha = new Date(item.paymentDate || item.periodEnd);
+      const fecha = new Date(item.paymentDate || item.period.split(' - ')[1]);
       return fecha >= fechaDesdeObj && fecha <= fechaHastaObj;
     });
 
@@ -96,7 +96,7 @@ export function AuditPage() {
       .filter(item => item.status === 'pagado')
       .reduce((sum, item) => sum + item.netSalary, 0);
 
-    const liquidacionesPendientes = payrollEnPeriodo.filter(item => item.status === 'pendiente').length;
+    const liquidacionesPendientes = payrollEnPeriodo.filter(item => item.status === 'calculado' || item.status === 'borrador').length;
     const recibosFaltantes = payrollEnPeriodo.filter(item => item.status === 'pagado' && !item.paymentDate).length;
 
     // Conciliación Bancaria (simulado)
@@ -244,7 +244,7 @@ export function AuditPage() {
         descripcion
       },
       fechaGeneracion: new Date().toISOString(),
-      generadoPor: 'Sistema',
+      usuarioGenerador: 'Sistema',
       estado: 'pendiente',
       resultados: {
         facturacion: {
@@ -254,10 +254,11 @@ export function AuditPage() {
           discrepanciaCobranza,
           detalleFacturas: invoicesEnPeriodo.map(inv => ({
             id: inv.id,
+            numero: inv.number,
             cliente: inv.customerName,
             monto: inv.amount,
             estado: inv.status,
-            fecha: inv.date
+            fechaVencimiento: inv.dueDate
           }))
         },
         gastos: {
@@ -269,26 +270,40 @@ export function AuditPage() {
             id: exp.id,
             descripcion: exp.description,
             monto: exp.amount,
+            categoria: exp.category,
             estado: exp.status,
-            fecha: exp.date
+            tieneComprobante: exp.description.length >= 5
           }))
         },
         stock: {
           valorTotal,
           productosConStock,
           productosStockNegativo,
-          productosSinMovimiento
+          productosSinMovimiento,
+          diferenciasInventario: 0,
+          detalleStock: []
         },
         sueldos: {
           totalLiquidado,
           liquidacionesPendientes,
-          recibosFaltantes
+          recibosFaltantes,
+          desfasajes: 0,
+          detalleLiquidaciones: payrollEnPeriodo.map(item => ({
+            id: item.id,
+            empleado: item.employeeName,
+            periodo: item.period,
+            monto: item.netSalary,
+            estado: item.status,
+            tieneRecibo: !!item.paymentDate
+          }))
         },
         conciliacionBancaria: {
           movimientosConciliados,
           movimientosPendientes,
           depositosSinFacturar,
-          diferenciaTotal
+          gastosSinImputar: 0,
+          diferenciaTotal,
+          detalleMovimientos: []
         },
         resumenGeneral: {
           balance,
@@ -398,7 +413,7 @@ export function AuditPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header title="Auditorías" />
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -411,9 +426,9 @@ export function AuditPage() {
 
         {/* Acciones principales */}
         <AuditoriaActions
-          onGenerateSemanal={() => handleOpenGenerate('semanal')}
-          onGenerateMensual={() => handleOpenGenerate('mensual')}
-          onGeneratePersonalizada={() => handleOpenGenerate('personalizada')}
+          onGenerarSemanal={() => handleOpenGenerate('semanal')}
+          onGenerarMensual={() => handleOpenGenerate('mensual')}
+          onGenerarPersonalizada={() => handleOpenGenerate('personalizada')}
           onVerHistorial={() => setAuditoriaSeleccionada(null)}
           onExportar={handleDownloadReport}
         />
@@ -449,7 +464,10 @@ export function AuditPage() {
             ) : (
               <AuditoriaHistory
                 auditorias={filteredAuditorias}
-                onVerDetalle={setAuditoriaSeleccionada}
+                onVerDetalle={(id) => {
+                  const aud = auditorias.find(a => a.id === id);
+                  if (aud) setAuditoriaSeleccionada(aud);
+                }}
                 onCambiarEstado={handleCambiarEstado}
                 onExportar={handleExportar}
               />

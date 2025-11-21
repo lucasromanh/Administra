@@ -3,14 +3,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Eye, Download, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import type { AuditoriaCompleta } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AuditoriaHistoryProps {
   auditorias: AuditoriaCompleta[];
   onVerDetalle: (id: string) => void;
   onExportar: (id: string, formato: 'pdf' | 'excel') => void;
+  onCambiarEstado?: (id: string, nuevoEstado: 'pendiente' | 'aprobada' | 'observada') => void;
 }
 
-export function AuditoriaHistory({ auditorias, onVerDetalle, onExportar }: AuditoriaHistoryProps) {
+export function AuditoriaHistory({ auditorias, onVerDetalle, onExportar, onCambiarEstado }: AuditoriaHistoryProps) {
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'aprobada':
@@ -82,12 +90,43 @@ export function AuditoriaHistory({ auditorias, onVerDetalle, onExportar }: Audit
                       <Badge className={`${getTipoColor(auditoria.tipo)} text-white`}>
                         {auditoria.tipo.toUpperCase()}
                       </Badge>
-                      <Badge className={getEstadoColor(auditoria.estado)}>
-                        <span className="flex items-center gap-1">
-                          {getEstadoIcon(auditoria.estado)}
-                          {auditoria.estado}
-                        </span>
-                      </Badge>
+                      {onCambiarEstado ? (
+                        <Select
+                          value={auditoria.estado}
+                          onValueChange={(value) => onCambiarEstado(auditoria.id, value as 'pendiente' | 'aprobada' | 'observada')}
+                        >
+                          <SelectTrigger className="w-32 h-7">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendiente">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Pendiente
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="aprobada">
+                              <span className="flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Aprobada
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="observada">
+                              <span className="flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                Observada
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge className={getEstadoColor(auditoria.estado)}>
+                          <span className="flex items-center gap-1">
+                            {getEstadoIcon(auditoria.estado)}
+                            {auditoria.estado}
+                          </span>
+                        </Badge>
+                      )}
                     </div>
                     <h4 className="font-semibold text-lg">{auditoria.periodo.descripcion}</h4>
                     <div className="text-sm text-muted-foreground space-y-1 mt-2">

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Users, Edit2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
