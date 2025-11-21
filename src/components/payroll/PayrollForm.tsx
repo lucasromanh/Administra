@@ -124,6 +124,17 @@ export function PayrollForm({ open, onOpenChange, employees, onSubmit }: Payroll
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Datos Básicos */}
+          {employees.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-orange-600">
+                  <AlertCircle className="h-5 w-5" />
+                  <p>No hay empleados activos. Primero crea un empleado en la pestaña "Empleados".</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employee">Empleado *</Label>
@@ -132,7 +143,7 @@ export function PayrollForm({ open, onOpenChange, employees, onSubmit }: Payroll
                   <SelectValue placeholder="Seleccionar empleado" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.filter(e => e.status === 'activo').map(employee => (
+                  {employees.map(employee => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name} - {employee.position}
                     </SelectItem>

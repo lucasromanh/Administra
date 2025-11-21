@@ -37,34 +37,92 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+      console.log('📊 Total filas en Excel:', jsonData.length);
+      console.log('📋 Primera fila de datos:', jsonData[0]);
+      console.log('📋 Columnas detectadas:', Object.keys(jsonData[0] || {}));
+
       // Mapear columnas del Excel a nuestro formato
       const records: CashRegisterImport[] = jsonData.map((row: any, index) => {
-        // Detectar método de pago basado en la columna "Pago"
-        let metodoPago: CashRegisterImport['metodoPago'] = 'efectivo';
-        const pagoStr = String(row['Pago'] || row['PAGO'] || row['Metodo Pago'] || '').toLowerCase();
-        
-        if (pagoStr.includes('cheque')) metodoPago = 'cheque';
-        else if (pagoStr.includes('debito') || pagoStr.includes('débito')) metodoPago = 'tarjeta-debito';
-        else if (pagoStr.includes('credito') || pagoStr.includes('crédito') || pagoStr.includes('tarjeta')) metodoPago = 'tarjeta-credito';
-        else if (pagoStr.includes('cupon') || pagoStr.includes('cupón')) metodoPago = 'cupon';
-        else if (pagoStr.includes('transfer')) metodoPago = 'transferencia';
+        // Convertir fecha de Excel (serial number) a fecha string
+        let fecha = new Date().toISOString().split('T')[0];
+        if (row['Fecha']) {
+          if (typeof row['Fecha'] === 'number') {
+            // Excel guarda fechas como números seriales (días desde 1900-01-01)
+            const excelDate = new Date((row['Fecha'] - 25569) * 86400 * 1000);
+            fecha = excelDate.toISOString().split('T')[0];
+          } else if (typeof row['Fecha'] === 'string') {
+            fecha = row['Fecha'];
+          }
+        }
 
-        return {
+        // Columna "Ingreso" contiene información de pago (ej: "$0", "$B+4000", "MUCAMA")
+        const ingresoRaw = String(row['Ingreso'] || '').trim();
+        
+        // Columna "Pago" contiene otra información de pago
+        const pagoRaw = String(row['Pago'] || '').trim();
+
+        // Detectar método de pago combinando ambas columnas
+        let metodoPago: CashRegisterImport['metodoPago'] = 'efectivo';
+        const combinedPaymentInfo = `${ingresoRaw} ${pagoRaw}`.toLowerCase();
+        
+        if (combinedPaymentInfo.includes('cheque')) {
+          metodoPago = 'cheque';
+        } else if (combinedPaymentInfo.includes('debito') || combinedPaymentInfo.includes('débito')) {
+          metodoPago = 'tarjeta-debito';
+        } else if (combinedPaymentInfo.includes('credito') || combinedPaymentInfo.includes('crédito') || combinedPaymentInfo.includes('tarjeta')) {
+          metodoPago = 'tarjeta-credito';
+        } else if (combinedPaymentInfo.includes('cupon') || combinedPaymentInfo.includes('cupón')) {
+          metodoPago = 'cupon';
+        } else if (combinedPaymentInfo.includes('transfer')) {
+          metodoPago = 'transferencia';
+        }
+
+        // Parsear total (puede venir como $35737.63 o 35737.63)
+        let total = 0;
+        if (row['Total']) {
+          const totalStr = String(row['Total']).replace(/[$,]/g, '');
+          total = parseFloat(totalStr) || 0;
+        }
+
+        // Limpiar N° Factura
+        let numeroFactura = row['N° Factura'] || row['N°Factura'] || row['N° Factura'];
+        if (numeroFactura) {
+          numeroFactura = String(numeroFactura).trim();
+        }
+
+        // Área de operación
+        const area = String(row['Área'] || 'RECEPCION').trim().toUpperCase();
+
+        const record = {
           id: `import-${Date.now()}-${index}`,
-          fecha: row['Fecha'] || row['FECHA'] || new Date().toISOString().split('T')[0],
-          ingreso: row['Ingreso'] || row['INGRESO'] || row['Concepto'] || '',
-          turno: row['Turno'] || row['TURNO'] || 'mañana',
-          numeroFactura: row['N°Factura'] || row['Nro Factura'] || row['Factura'] || undefined,
-          razonSocial: row['Razón Social'] || row['Razon Social'] || row['Cliente'] || undefined,
-          area: row['Área'] || row['Area'] || row['AREA'] || 'RECEPCION',
+          fecha,
+          ingreso: ingresoRaw || 'Sin descripción', // Guardar el valor original de Ingreso
+          turno: String(row['Turno'] || 'Juan Ramos').trim(),
+          numeroFactura: numeroFactura || undefined,
+          razonSocial: row['Razón Social'] ? String(row['Razón Social']).trim() : undefined,
+          area,
           metodoPago,
-          total: parseFloat(row['Total'] || row['TOTAL'] || row['Monto'] || 0),
-          cierreCaja: row['Cierre de Caja'] || row['Cierre'] || undefined,
-          creadoPor: row['Creado por'] || row['Usuario'] || undefined,
+          total,
+          pago: pagoRaw || undefined, // Agregar columna Pago también
+          cierreCaja: row['Cierre de Caja'] ? String(row['Cierre de Caja']) : undefined,
+          creadoPor: row['Creado por'] ? String(row['Creado por']).trim() : undefined,
           importedAt: new Date().toISOString(),
           processed: false,
         };
-      }).filter(record => record.total > 0); // Solo registros con monto
+
+        console.log(`✅ Registro ${index + 1}:`, {
+          fecha: record.fecha,
+          area: record.area,
+          total: record.total,
+          ingreso: record.ingreso,
+        });
+
+        return record;
+      }) as CashRegisterImport[];
+
+      console.log('📊 Registros válidos procesados:', records.length);
+      console.log('📋 Primer registro completo:', records[0]);
+      console.log('📋 Último registro completo:', records[records.length - 1]);
 
       setPreview(records);
       setLoading(false);
@@ -76,7 +134,13 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
   };
 
   const handleImport = () => {
-    if (preview.length === 0) return;
+    console.log('🔵 handleImport ejecutado');
+    console.log('Preview length:', preview.length);
+    if (preview.length === 0) {
+      console.warn('❌ No hay registros para importar');
+      return;
+    }
+    console.log('✅ Importando', preview.length, 'registros');
     onImport(preview);
     setFile(null);
     setPreview([]);
@@ -91,7 +155,7 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -102,7 +166,7 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto px-1 space-y-6">
           {/* Upload */}
           <div className="space-y-2">
             <Label htmlFor="file">Archivo Excel (.xlsx, .xls)</Label>
@@ -148,7 +212,7 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Total Monto</p>
-                      <p className="text-2xl font-bold text-green-600">
+                      <p className={`text-xl font-bold break-words ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         ${totalAmount.toLocaleString('es-CL')}
                       </p>
                     </div>
@@ -182,49 +246,67 @@ export function ImportCashRegisterModal({ open, onClose, onImport }: ImportCashR
                 </CardContent>
               </Card>
 
-              {/* Tabla de preview */}
+              {/* Tabla de preview - Más compacta para ver más registros */}
               <div className="border rounded-lg">
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-64 overflow-y-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Turno</TableHead>
-                        <TableHead>Ingreso/Concepto</TableHead>
-                        <TableHead>Área</TableHead>
-                        <TableHead>Razón Social</TableHead>
-                        <TableHead>N° Factura</TableHead>
-                        <TableHead>Método Pago</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                      <TableRow className="text-xs">
+                        <TableHead className="w-24">Fecha</TableHead>
+                        <TableHead className="w-32">Turno</TableHead>
+                        <TableHead className="w-24">Ingreso</TableHead>
+                        <TableHead className="w-28">Área</TableHead>
+                        <TableHead className="w-40">Razón Social</TableHead>
+                        <TableHead className="w-28">N° Factura</TableHead>
+                        <TableHead className="w-24">Pago</TableHead>
+                        <TableHead className="w-24 text-right">Total</TableHead>
+                        <TableHead className="w-32">Cierre Caja</TableHead>
+                        <TableHead className="w-32">Creado Por</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {preview.slice(0, 50).map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="text-sm">{record.fecha}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{record.turno}</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">{record.ingreso}</TableCell>
-                          <TableCell className="text-sm font-medium">{record.area}</TableCell>
-                          <TableCell className="text-sm">{record.razonSocial || '-'}</TableCell>
-                          <TableCell className="text-sm">{record.numeroFactura || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-xs">
-                              {record.metodoPago}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${record.total.toLocaleString('es-CL')}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {preview.map((record) => {
+                        const formattedTotal = record.total < 0 
+                          ? `-$${Math.abs(Math.round(record.total)).toLocaleString('es-CL')}`
+                          : `$${Math.round(record.total).toLocaleString('es-CL')}`;
+                        
+                        return (
+                          <TableRow key={record.id} className="text-xs">
+                            <TableCell className="font-mono">{record.fecha}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">{record.turno}</Badge>
+                            </TableCell>
+                            <TableCell className="truncate max-w-24" title={record.ingreso}>
+                              {record.ingreso}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">{record.area}</Badge>
+                            </TableCell>
+                            <TableCell className="truncate max-w-40" title={record.razonSocial || ''}>
+                              {record.razonSocial || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono">{record.numeroFactura || '-'}</TableCell>
+                            <TableCell className="truncate max-w-24" title={record.pago || ''}>
+                              {record.pago || '-'}
+                            </TableCell>
+                            <TableCell className={`text-right font-semibold ${record.total < 0 ? 'text-red-600' : ''}`}>
+                              {formattedTotal}
+                            </TableCell>
+                            <TableCell className="truncate max-w-32" title={record.cierreCaja || ''}>
+                              {record.cierreCaja || '-'}
+                            </TableCell>
+                            <TableCell className="truncate max-w-32" title={record.creadoPor || ''}>
+                              {record.creadoPor || '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
-                {preview.length > 50 && (
+                {preview.length > 100 && (
                   <div className="p-2 text-center text-sm text-muted-foreground border-t">
-                    Mostrando 50 de {preview.length} registros
+                    Mostrando todos los {preview.length} registros (scroll para ver más)
                   </div>
                 )}
               </div>

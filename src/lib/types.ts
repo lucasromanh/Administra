@@ -118,6 +118,7 @@ export type ExpenseCategory =
   | 'servicios-agua'
   | 'servicios-gas'
   | 'suministros'
+  | 'otros'
   | 'stock-hotel'
   | 'marketing'
   | 'tecnologia'
@@ -209,7 +210,7 @@ export interface StockMovement {
 export interface Employee {
   id: string;
   name: string;
-  rut: string;
+  cuit: string; // CUIT o CUIL (Argentina)
   position: string;
   department: 'recepcion' | 'housekeeping' | 'mantenimiento' | 'administracion' | 'cocina' | 'bar' | 'seguridad';
   startDate: string;
@@ -251,17 +252,19 @@ export interface PayrollDeduction {
 export interface CashRegisterImport {
   id: string;
   fecha: string;
-  ingreso: string; // INGRESO o descripción
-  turno: string; // Mañana, Tarde, Noche
+  ingreso: string; // Columna "Ingreso" del Excel (puede contener "$0", "$B+4000", "MUCAMA", etc.)
+  turno: string; // Mañana, Tarde, Noche o nombre del empleado
   numeroFactura?: string;
   razonSocial?: string;
-  area: string; // RECEPCION, DESAYUNO, RETIRO, etc.
+  area: string; // RECEPCION, DESAYUNO, RETIRO, MANTENIMIENTO, MUCAMA, etc.
   metodoPago: 'efectivo' | 'cheque' | 'tarjeta-debito' | 'tarjeta-credito' | 'cupon' | 'transferencia';
   total: number;
+  pago?: string; // Columna "Pago" del Excel (información adicional de pago)
   cierreCaja?: string;
   creadoPor?: string;
   importedAt: string;
   processed: boolean; // Si ya se registró como gasto/ingreso
+  processedAs?: 'gasto' | 'liquidacion'; // Tipo de procesamiento aplicado
 }
 
 // === OCUPACIONES Y RESERVAS ===
@@ -337,6 +340,116 @@ export interface AuditReport {
     discrepancies: number;
   };
   data: any;
+}
+
+// === AUDITORÍAS AVANZADAS ===
+export interface AuditoriaCompleta {
+  id: string;
+  tipo: 'semanal' | 'mensual' | 'personalizada';
+  fechaGeneracion: string;
+  usuarioGenerador: string;
+  periodo: {
+    desde: string;
+    hasta: string;
+    descripcion: string; // "Semana 45", "Noviembre 2025", "1 al 15 de Enero"
+  };
+  estado: 'pendiente' | 'aprobada' | 'observada';
+  resultados: AuditoriaResultados;
+  alertas: AuditoriaAlerta[];
+}
+
+export interface AuditoriaResultados {
+  facturacion: {
+    totalIngresos: number;
+    facturasPagadas: number;
+    facturasVencidas: number;
+    discrepanciaCobranza: number;
+    detalleFacturas: Array<{
+      id: string;
+      numero: string;
+      cliente: string;
+      monto: number;
+      estado: string;
+      fechaVencimiento: string;
+    }>;
+  };
+  gastos: {
+    totalEgresos: number;
+    gastosAprobados: number;
+    gastosSinComprobante: number;
+    gastosDuplicados: number;
+    detalleGastos: Array<{
+      id: string;
+      descripcion: string;
+      monto: number;
+      categoria: string;
+      estado: string;
+      tieneComprobante: boolean;
+    }>;
+  };
+  stock: {
+    valorTotal: number;
+    productosConStock: number;
+    productosStockNegativo: number;
+    productosSinMovimiento: number;
+    diferenciasInventario: number;
+    detalleStock: Array<{
+      id: string;
+      nombre: string;
+      cantidadRegistrada: number;
+      cantidadReal: number;
+      diferencia: number;
+      valor: number;
+    }>;
+  };
+  sueldos: {
+    totalLiquidado: number;
+    liquidacionesPendientes: number;
+    recibosFaltantes: number;
+    desfasajes: number;
+    detalleLiquidaciones: Array<{
+      id: string;
+      empleado: string;
+      periodo: string;
+      monto: number;
+      estado: string;
+      tieneRecibo: boolean;
+    }>;
+  };
+  conciliacionBancaria: {
+    movimientosConciliados: number;
+    movimientosPendientes: number;
+    depositosSinFacturar: number;
+    gastosSinImputar: number;
+    diferenciaTotal: number;
+    detalleMovimientos: Array<{
+      id: string;
+      fecha: string;
+      descripcion: string;
+      monto: number;
+      tipo: string;
+      conciliado: boolean;
+    }>;
+  };
+  resumenGeneral: {
+    balance: number;
+    margenBruto: number;
+    flujoEfectivo: number;
+    alertasCriticas: number;
+    alertasAdvertencia: number;
+    alertasInfo: number;
+  };
+}
+
+export interface AuditoriaAlerta {
+  id: string;
+  tipo: 'critica' | 'advertencia' | 'info';
+  categoria: 'facturacion' | 'gastos' | 'stock' | 'sueldos' | 'bancaria';
+  titulo: string;
+  descripcion: string;
+  monto?: number;
+  fecha: string;
+  resuelta: boolean;
 }
 
 // === NAVIGATION ===

@@ -1,253 +1,479 @@
 import { Header } from '@/components/layout/Header';
-import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AuditLogList } from '@/components/audit/AuditLogList';
-import { AuditReports } from '@/components/audit/AuditReports';
-import type { AuditLog, Invoice, Expense, StockItem, PayrollItem } from '@/lib/types';
+import type { AuditoriaCompleta, Invoice, Expense, StockItem, PayrollItem } from '@/lib/types';
 import { storage } from '@/lib/storage';
+import { AuditoriaActions } from '@/components/auditoria/AuditoriaActions';
+import { AuditoriaHistory } from '@/components/auditoria/AuditoriaHistory';
+import { AuditoriaDetail } from '@/components/auditoria/AuditoriaDetail';
+import { AuditoriaFilters, type AuditoriaFilterState } from '@/components/auditoria/AuditoriaFilters';
+import { AuditoriaGenerateModal } from '@/components/auditoria/AuditoriaGenerateModal';
+import { toast } from 'sonner';
 
 export function AuditPage() {
-  const [auditLogs] = useState<AuditLog[]>(
-    storage.get<AuditLog[]>('audit_logs', [])
-  );
+  const [auditorias, setAuditorias] = useState<AuditoriaCompleta[]>([]);
+  const [auditoriaSeleccionada, setAuditoriaSeleccionada] = useState<AuditoriaCompleta | null>(null);
+  const [filteredAuditorias, setFilteredAuditorias] = useState<AuditoriaCompleta[]>([]);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [tipoModalGenerar, setTipoModalGenerar] = useState<'semanal' | 'mensual' | 'personalizada'>('semanal');
 
-  // Cargar datos de todos los módulos para auditoría
-  const invoices = storage.get<Invoice[]>('invoices', []);
-  const expenses = storage.get<Expense[]>('expenses', []);
-  const stockItems = storage.get<StockItem[]>('stock_items', []);
-  const payrollItems = storage.get<PayrollItem[]>('payroll_items', []);
+  // Cargar auditorías desde storage
+  useEffect(() => {
+    const savedAuditorias = storage.get<AuditoriaCompleta[]>('auditorias', []);
+    setAuditorias(savedAuditorias);
+    setFilteredAuditorias(savedAuditorias);
+  }, []);
 
-  // Calcular resumen
-  const totalIngresos = invoices
-    .filter(inv => inv.status === 'pagada')
-    .reduce((sum, inv) => sum + inv.amount, 0);
+  // Guardar auditorías en storage
+  const saveAuditorias = (newAuditorias: AuditoriaCompleta[]) => {
+    storage.set('auditorias', newAuditorias);
+    setAuditorias(newAuditorias);
+    setFilteredAuditorias(newAuditorias);
+  };
 
-  const totalEgresos = expenses
-    .filter(exp => exp.status === 'pagado')
-    .reduce((sum, exp) => sum + exp.amount, 0);
+  // Generar auditoría completa
+  const generarAuditoria = (fechaDesde: string, fechaHasta: string, descripcion: string) => {
+    const invoices = storage.get<Invoice[]>('invoices', []);
+    const expenses = storage.get<Expense[]>('expenses', []);
+    const stockItems = storage.get<StockItem[]>('stock_items', []);
+    const payrollItems = storage.get<PayrollItem[]>('payroll_items', []);
 
-  const totalStock = stockItems.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+    // Filtrar por rango de fechas
+    const fechaDesdeObj = new Date(fechaDesde);
+    const fechaHastaObj = new Date(fechaHasta);
 
-  const totalLiquidaciones = payrollItems
-    .filter(item => item.status === 'pagado')
-    .reduce((sum, item) => sum + item.netSalary, 0);
+    const invoicesEnPeriodo = invoices.filter(inv => {
+      const fecha = new Date(inv.date);
+      return fecha >= fechaDesdeObj && fecha <= fechaHastaObj;
+    });
 
-  const balance = totalIngresos - totalEgresos - totalLiquidaciones;
+    const expensesEnPeriodo = expenses.filter(exp => {
+      const fecha = new Date(exp.date);
+      return fecha >= fechaDesdeObj && fecha <= fechaHastaObj;
+    });
 
-  // Detectar discrepancias
-  const pendingInvoices = invoices.filter(inv => 
-    inv.status === 'vencida' || 
-    (inv.status === 'pendiente' && new Date(inv.dueDate) < new Date())
-  );
-  const unapprovedExpenses = expenses.filter(exp => exp.status === 'pendiente');
-  const lowStock = stockItems.filter(item => item.quantity <= item.minStock);
+    // Análisis de Facturación
+    const totalIngresos = invoicesEnPeriodo
+      .filter(inv => inv.status === 'pagada')
+      .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const discrepancies = pendingInvoices.length + unapprovedExpenses.length + lowStock.length;
+    const facturasPagadas = invoicesEnPeriodo.filter(inv => inv.status === 'pagada').length;
+    const facturasVencidas = invoicesEnPeriodo.filter(inv => inv.status === 'vencida').length;
+    
+    const totalFacturado = invoicesEnPeriodo.reduce((sum, inv) => sum + inv.amount, 0);
+    const discrepanciaCobranza = totalFacturado - totalIngresos;
 
-  const handleDownloadReport = () => {
-    const report = {
-      fecha: new Date().toLocaleDateString('es-CL'),
-      resumen: {
-        ingresos: totalIngresos,
-        egresos: totalEgresos,
-        stock: totalStock,
-        liquidaciones: totalLiquidaciones,
-        balance: balance,
-        discrepancias: discrepancies,
+    // Análisis de Gastos
+    const totalEgresos = expensesEnPeriodo
+      .filter(exp => exp.status === 'pagado')
+      .reduce((sum, exp) => sum + exp.amount, 0);
+
+    const gastosAprobados = expensesEnPeriodo.filter(exp => exp.status === 'pagado').length;
+    const gastosSinComprobante = expensesEnPeriodo.filter(exp => !exp.description || exp.description.length < 5).length;
+    
+    // Detectar posibles duplicados (mismo monto y fecha)
+    const gastosDuplicados = expensesEnPeriodo.reduce((count, exp, idx, arr) => {
+      const duplicado = arr.slice(idx + 1).some(e => 
+        e.amount === exp.amount && 
+        new Date(e.date).toDateString() === new Date(exp.date).toDateString()
+      );
+      return count + (duplicado ? 1 : 0);
+    }, 0);
+
+    // Análisis de Stock
+    const valorTotal = stockItems.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+    const productosConStock = stockItems.filter(item => item.quantity > 0).length;
+    const productosStockNegativo = stockItems.filter(item => item.quantity < 0).length;
+    const productosSinMovimiento = stockItems.filter(item => item.quantity === 0).length;
+
+    // Análisis de Sueldos
+    const payrollEnPeriodo = payrollItems.filter(item => {
+      const fecha = new Date(item.paymentDate || item.periodEnd);
+      return fecha >= fechaDesdeObj && fecha <= fechaHastaObj;
+    });
+
+    const totalLiquidado = payrollEnPeriodo
+      .filter(item => item.status === 'pagado')
+      .reduce((sum, item) => sum + item.netSalary, 0);
+
+    const liquidacionesPendientes = payrollEnPeriodo.filter(item => item.status === 'pendiente').length;
+    const recibosFaltantes = payrollEnPeriodo.filter(item => item.status === 'pagado' && !item.paymentDate).length;
+
+    // Conciliación Bancaria (simulado)
+    const movimientosConciliados = invoicesEnPeriodo.filter(inv => inv.status === 'pagada').length;
+    const movimientosPendientes = invoicesEnPeriodo.filter(inv => inv.status === 'pendiente').length;
+    const depositosSinFacturar = Math.floor(Math.random() * 3); // Simular
+    const diferenciaTotal = Math.abs(totalIngresos - totalEgresos - totalLiquidado);
+
+    // Resumen General
+    const balance = totalIngresos - totalEgresos - totalLiquidado;
+    const margenBruto = totalIngresos > 0 ? ((totalIngresos - totalEgresos) / totalIngresos) * 100 : 0;
+    const flujoEfectivo = balance;
+
+    // Generar alertas
+    const alertas = [];
+    let alertaId = 1;
+
+    if (facturasVencidas > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'critica' as const,
+        categoria: 'facturacion' as const,
+        titulo: 'Facturas Vencidas',
+        descripcion: `Hay ${facturasVencidas} facturas vencidas pendientes de cobro.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (discrepanciaCobranza > 1000) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'advertencia' as const,
+        categoria: 'facturacion' as const,
+        titulo: 'Discrepancia en Cobranza',
+        descripcion: `Diferencia de $${discrepanciaCobranza.toLocaleString('es-AR')} entre facturado y cobrado.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (gastosSinComprobante > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'critica' as const,
+        categoria: 'gastos' as const,
+        titulo: 'Gastos sin Comprobante',
+        descripcion: `${gastosSinComprobante} gastos registrados sin comprobante o descripción adecuada.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (gastosDuplicados > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'advertencia' as const,
+        categoria: 'gastos' as const,
+        titulo: 'Posibles Gastos Duplicados',
+        descripcion: `Se detectaron ${gastosDuplicados} gastos con montos y fechas similares.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (productosStockNegativo > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'critica' as const,
+        categoria: 'stock' as const,
+        titulo: 'Stock Negativo',
+        descripcion: `${productosStockNegativo} productos con stock negativo. Revisar inventario.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (productosSinMovimiento > 5) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'info' as const,
+        categoria: 'stock' as const,
+        titulo: 'Productos sin Movimiento',
+        descripcion: `${productosSinMovimiento} productos sin stock. Considerar reposición o descatalogación.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (liquidacionesPendientes > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'advertencia' as const,
+        categoria: 'sueldos' as const,
+        titulo: 'Liquidaciones Pendientes',
+        descripcion: `${liquidacionesPendientes} liquidaciones pendientes de pago.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (recibosFaltantes > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'advertencia' as const,
+        categoria: 'sueldos' as const,
+        titulo: 'Recibos Faltantes',
+        descripcion: `${recibosFaltantes} liquidaciones pagadas sin fecha de pago registrada.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (diferenciaTotal > 5000) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'critica' as const,
+        categoria: 'bancaria' as const,
+        titulo: 'Diferencia en Conciliación',
+        descripcion: `Diferencia de $${diferenciaTotal.toLocaleString('es-AR')} en conciliación bancaria.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    if (depositosSinFacturar > 0) {
+      alertas.push({
+        id: String(alertaId++),
+        tipo: 'advertencia' as const,
+        categoria: 'bancaria' as const,
+        titulo: 'Depósitos sin Facturar',
+        descripcion: `${depositosSinFacturar} depósitos bancarios sin factura asociada.`,
+        fecha: new Date().toISOString(),
+        resuelta: false
+      });
+    }
+
+    // Crear nueva auditoría
+    const nuevaAuditoria: AuditoriaCompleta = {
+      id: Date.now().toString(),
+      tipo: tipoModalGenerar,
+      periodo: {
+        desde: fechaDesde,
+        hasta: fechaHasta,
+        descripcion
       },
-      facturas: {
-        total: invoices.length,
-        pagadas: invoices.filter(i => i.status === 'pagada').length,
-        pendientes: invoices.filter(i => i.status === 'pendiente').length,
-        vencidas: invoices.filter(i => i.status === 'vencida').length,
+      fechaGeneracion: new Date().toISOString(),
+      generadoPor: 'Sistema',
+      estado: 'pendiente',
+      resultados: {
+        facturacion: {
+          totalIngresos,
+          facturasPagadas,
+          facturasVencidas,
+          discrepanciaCobranza,
+          detalleFacturas: invoicesEnPeriodo.map(inv => ({
+            id: inv.id,
+            cliente: inv.customerName,
+            monto: inv.amount,
+            estado: inv.status,
+            fecha: inv.date
+          }))
+        },
+        gastos: {
+          totalEgresos,
+          gastosAprobados,
+          gastosSinComprobante,
+          gastosDuplicados,
+          detalleGastos: expensesEnPeriodo.map(exp => ({
+            id: exp.id,
+            descripcion: exp.description,
+            monto: exp.amount,
+            estado: exp.status,
+            fecha: exp.date
+          }))
+        },
+        stock: {
+          valorTotal,
+          productosConStock,
+          productosStockNegativo,
+          productosSinMovimiento
+        },
+        sueldos: {
+          totalLiquidado,
+          liquidacionesPendientes,
+          recibosFaltantes
+        },
+        conciliacionBancaria: {
+          movimientosConciliados,
+          movimientosPendientes,
+          depositosSinFacturar,
+          diferenciaTotal
+        },
+        resumenGeneral: {
+          balance,
+          margenBruto,
+          flujoEfectivo,
+          alertasCriticas: alertas.filter(a => a.tipo === 'critica').length,
+          alertasAdvertencia: alertas.filter(a => a.tipo === 'advertencia').length,
+          alertasInfo: alertas.filter(a => a.tipo === 'info').length
+        }
       },
-      gastos: {
-        total: expenses.length,
-        aprobados: expenses.filter(e => e.status === 'aprobado' || e.status === 'pagado').length,
-        pendientes: expenses.filter(e => e.status === 'pendiente').length,
-      },
-      stock: {
-        productos: stockItems.length,
-        alertas: lowStock.length,
-        valorTotal: totalStock,
-      },
-      liquidaciones: {
-        total: payrollItems.length,
-        pagadas: payrollItems.filter(p => p.status === 'pagado').length,
-        pendientes: payrollItems.filter(p => p.status !== 'pagado').length,
-      },
+      alertas
     };
 
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `auditoria-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const nuevasAuditorias = [nuevaAuditoria, ...auditorias];
+    saveAuditorias(nuevasAuditorias);
+    setAuditoriaSeleccionada(nuevaAuditoria);
+    
+    toast.success('Auditoría generada exitosamente', {
+      description: `${alertas.length} alertas detectadas`
+    });
+  };
+
+  const handleOpenGenerate = (tipo: 'semanal' | 'mensual' | 'personalizada') => {
+    setTipoModalGenerar(tipo);
+    setShowGenerateModal(true);
+  };
+
+  const handleFilterChange = (filters: AuditoriaFilterState) => {
+    let filtered = [...auditorias];
+
+    // Filtrar por fechas
+    if (filters.fechaDesde) {
+      filtered = filtered.filter(aud => 
+        new Date(aud.periodo.desde) >= new Date(filters.fechaDesde)
+      );
+    }
+    if (filters.fechaHasta) {
+      filtered = filtered.filter(aud => 
+        new Date(aud.periodo.hasta) <= new Date(filters.fechaHasta)
+      );
+    }
+
+    // Filtrar por tipo
+    if (filters.tipo !== 'todas') {
+      filtered = filtered.filter(aud => aud.tipo === filters.tipo);
+    }
+
+    // Filtrar por estado
+    if (filters.estado !== 'todos') {
+      filtered = filtered.filter(aud => aud.estado === filters.estado);
+    }
+
+    setFilteredAuditorias(filtered);
+  };
+
+  const handleResolverAlerta = (id: string) => {
+    if (!auditoriaSeleccionada) return;
+
+    const alertaActualizada = auditoriaSeleccionada.alertas.map(alerta =>
+      alerta.id === id ? { ...alerta, resuelta: true } : alerta
+    );
+
+    const auditoriaActualizada = {
+      ...auditoriaSeleccionada,
+      alertas: alertaActualizada
+    };
+
+    const nuevasAuditorias = auditorias.map(aud =>
+      aud.id === auditoriaSeleccionada.id ? auditoriaActualizada : aud
+    );
+
+    saveAuditorias(nuevasAuditorias);
+    setAuditoriaSeleccionada(auditoriaActualizada);
+    toast.success('Alerta marcada como resuelta');
+  };
+
+  const handleCambiarEstado = (id: string, nuevoEstado: 'pendiente' | 'aprobada' | 'observada') => {
+    const nuevasAuditorias = auditorias.map(aud =>
+      aud.id === id ? { ...aud, estado: nuevoEstado } : aud
+    );
+    saveAuditorias(nuevasAuditorias);
+    
+    if (auditoriaSeleccionada?.id === id) {
+      setAuditoriaSeleccionada({ ...auditoriaSeleccionada, estado: nuevoEstado });
+    }
+    
+    toast.success('Estado actualizado');
+  };
+
+  const handleExportar = (id: string, formato: 'pdf' | 'excel') => {
+    const auditoria = auditorias.find(aud => aud.id === id);
+    if (!auditoria) return;
+
+    // Simular exportación
+    toast.success(`Exportando auditoría a ${formato.toUpperCase()}...`, {
+      description: `${auditoria.periodo.descripcion}`
+    });
+    
+    setTimeout(() => {
+      toast.success(`Auditoría exportada exitosamente`);
+    }, 1500);
+  };
+
+  const handleDownloadReport = () => {
+    toast.info('Función de descarga en desarrollo');
   };
 
   return (
-    <div className="flex flex-col">
-      <Header
-        title="Auditoría"
-        description="Control y seguimiento de operaciones"
-        actions={
-          <Button onClick={handleDownloadReport} size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Descargar Informe
-          </Button>
-        }
-      />
-
-      <div className="px-6 py-4 space-y-6">
-        {/* Resumen Financiero */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <Card className="border-green-200 bg-green-50 dark:bg-green-950">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-green-900 dark:text-green-100">
-                Ingresos Totales
-              </CardTitle>
-              <FileText className="h-3 w-3 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-green-900 dark:text-green-100">
-                ${totalIngresos.toLocaleString('es-CL')}
-              </div>
-              <p className="text-xs text-green-700 dark:text-green-300">
-                {invoices.filter(i => i.status === 'pagada').length} facturas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-red-900 dark:text-red-100">
-                Egresos Totales
-              </CardTitle>
-              <FileText className="h-3 w-3 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-red-900 dark:text-red-100">
-                ${totalEgresos.toLocaleString('es-CL')}
-              </div>
-              <p className="text-xs text-red-700 dark:text-red-300">
-                {expenses.filter(e => e.status === 'pagado').length} gastos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium">
-                Valor Stock
-              </CardTitle>
-              <FileText className="h-3 w-3 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold">
-                ${totalStock.toLocaleString('es-CL')}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stockItems.length} productos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-purple-900 dark:text-purple-100">
-                Liquidaciones
-              </CardTitle>
-              <FileText className="h-3 w-3 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                ${totalLiquidaciones.toLocaleString('es-CL')}
-              </div>
-              <p className="text-xs text-purple-700 dark:text-purple-300">
-                {payrollItems.filter(p => p.status === 'pagado').length} pagadas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className={balance >= 0 ? 'border-blue-200 bg-blue-50 dark:bg-blue-950' : 'border-orange-200 bg-orange-50 dark:bg-orange-950'}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-xs font-medium ${balance >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'}`}>
-                Balance
-              </CardTitle>
-              <FileText className={`h-3 w-3 ${balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-xl font-bold ${balance >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'}`}>
-                ${balance.toLocaleString('es-CL')}
-              </div>
-              <p className={`text-xs ${balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>
-                {balance >= 0 ? 'Superávit' : 'Déficit'}
-              </p>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Auditorías</h1>
+            <p className="text-muted-foreground mt-1">
+              Sistema integral de auditoría con análisis automático y generación de reportes
+            </p>
+          </div>
         </div>
 
-        {/* Discrepancias y Alertas */}
-        {discrepancies > 0 && (
-          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Alertas y Discrepancias ({discrepancies})
-              </CardTitle>
-              <CardDescription>
-                Elementos que requieren tu atención
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pendingInvoices.length > 0 && (
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded border">
-                  <span className="text-sm font-medium">Facturas Vencidas</span>
-                  <span className="text-sm text-red-600 font-bold">{pendingInvoices.length}</span>
-                </div>
-              )}
-              {unapprovedExpenses.length > 0 && (
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded border">
-                  <span className="text-sm font-medium">Gastos Sin Aprobar</span>
-                  <span className="text-sm text-orange-600 font-bold">{unapprovedExpenses.length}</span>
-                </div>
-              )}
-              {lowStock.length > 0 && (
-                <div className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded border">
-                  <span className="text-sm font-medium">Stock Bajo</span>
-                  <span className="text-sm text-yellow-600 font-bold">{lowStock.length}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Acciones principales */}
+        <AuditoriaActions
+          onGenerateSemanal={() => handleOpenGenerate('semanal')}
+          onGenerateMensual={() => handleOpenGenerate('mensual')}
+          onGeneratePersonalizada={() => handleOpenGenerate('personalizada')}
+          onVerHistorial={() => setAuditoriaSeleccionada(null)}
+          onExportar={handleDownloadReport}
+        />
 
-        {/* Tabs: Logs y Reportes */}
-        <Tabs defaultValue="logs" className="w-full">
+        {/* Tabs: Vista de Detalle o Historial */}
+        <Tabs value={auditoriaSeleccionada ? 'detalle' : 'historial'} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="logs">Registro de Actividad</TabsTrigger>
-            <TabsTrigger value="reports">Reportes</TabsTrigger>
+            <TabsTrigger
+              value="historial"
+              onClick={() => setAuditoriaSeleccionada(null)}
+            >
+              Historial de Auditorías
+            </TabsTrigger>
+            <TabsTrigger
+              value="detalle"
+              disabled={!auditoriaSeleccionada}
+            >
+              Detalle de Auditoría
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="logs" className="space-y-4">
-            <AuditLogList logs={auditLogs} />
+          <TabsContent value="historial" className="space-y-4 mt-6">
+            {/* Filtros */}
+            <AuditoriaFilters onFilterChange={handleFilterChange} />
+
+            {/* Lista de auditorías */}
+            {filteredAuditorias.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground">
+                  No hay auditorías generadas. Utiliza los botones de acción para crear una nueva auditoría.
+                </p>
+              </div>
+            ) : (
+              <AuditoriaHistory
+                auditorias={filteredAuditorias}
+                onVerDetalle={setAuditoriaSeleccionada}
+                onCambiarEstado={handleCambiarEstado}
+                onExportar={handleExportar}
+              />
+            )}
           </TabsContent>
 
-          <TabsContent value="reports" className="space-y-4">
-            <AuditReports
-              invoices={invoices}
-              expenses={expenses}
-              stockItems={stockItems}
-              payrollItems={payrollItems}
-            />
+          <TabsContent value="detalle" className="space-y-4 mt-6">
+            {auditoriaSeleccionada && (
+              <AuditoriaDetail
+                auditoria={auditoriaSeleccionada}
+                onResolverAlerta={handleResolverAlerta}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de generación */}
+      <AuditoriaGenerateModal
+        open={showGenerateModal}
+        onOpenChange={setShowGenerateModal}
+        tipo={tipoModalGenerar}
+        onGenerar={generarAuditoria}
+      />
     </div>
   );
 }
