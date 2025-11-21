@@ -12,6 +12,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { StockPage } from '@/pages/StockPage';
 import { PayrollPage } from '@/pages/PayrollPage';
 import { AuditPage } from '@/pages/AuditPage';
+import { CashImportPage } from '@/pages/CashImportPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -77,6 +78,10 @@ const router = createBrowserRouter([
   {
     path: '/audit',
     element: <ProtectedRoute><AuditPage /></ProtectedRoute>,
+  },
+  {
+    path: '/cash-import',
+    element: <ProtectedRoute><CashImportPage /></ProtectedRoute>,
   },
 ]);
 

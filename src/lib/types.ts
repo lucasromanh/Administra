@@ -247,6 +247,23 @@ export interface PayrollDeduction {
   type: 'legal' | 'voluntario';
 }
 
+// === IMPORTACIÓN CAJA DIARIA ===
+export interface CashRegisterImport {
+  id: string;
+  fecha: string;
+  ingreso: string; // INGRESO o descripción
+  turno: string; // Mañana, Tarde, Noche
+  numeroFactura?: string;
+  razonSocial?: string;
+  area: string; // RECEPCION, DESAYUNO, RETIRO, etc.
+  metodoPago: 'efectivo' | 'cheque' | 'tarjeta-debito' | 'tarjeta-credito' | 'cupon' | 'transferencia';
+  total: number;
+  cierreCaja?: string;
+  creadoPor?: string;
+  importedAt: string;
+  processed: boolean; // Si ya se registró como gasto/ingreso
+}
+
 // === OCUPACIONES Y RESERVAS ===
 export interface RoomBooking {
   id: string;

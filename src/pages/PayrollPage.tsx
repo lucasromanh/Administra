@@ -46,11 +46,12 @@ export function PayrollPage() {
     storage.set('employees', updated);
   };
 
-  const handleCreatePayroll = (payroll: Omit<PayrollItem, 'id' | 'createdAt'>) => {
+  const handleCreatePayroll = (payroll: Omit<PayrollItem, 'id' | 'createdAt' | 'status'>) => {
     const newPayroll: PayrollItem = {
       ...payroll,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
+      status: 'borrador',
     };
     const updated = [...payrollItems, newPayroll];
     setPayrollItems(updated);

@@ -16,6 +16,7 @@ import {
   Package,
   Users,
   ClipboardCheck,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -67,6 +68,11 @@ export function Sidebar() {
       name: 'Auditoría',
       href: '/audit',
       icon: <ClipboardCheck className="h-4 w-4" />,
+    },
+    {
+      name: 'Importar Caja Diaria',
+      href: '/cash-import',
+      icon: <FileSpreadsheet className="h-4 w-4" />,
     },
     {
       name: 'Reportes',
